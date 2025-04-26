@@ -43,7 +43,7 @@ class VMSuite(unittest.TestCase):
         expect = "1"
         self.assertTrue(TestVM.test(input, expect, 408))
     
-    def test_writeInt(self):        
+    def test_writeInt_with_assignment(self):        
         input = """[[var(a, integer)],[],[assign(a,1),call(writeInt,[a])]]."""
         expect = "1"
         self.assertTrue(TestVM.test(input, expect, 409))
