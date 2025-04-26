@@ -42,8 +42,13 @@ class VMSuite(unittest.TestCase):
         input = """[[const(a,integer)],[],[call(writeInt,[1])]]."""
         expect = "1"
         self.assertTrue(TestVM.test(input, expect, 408))
-
-    def test_assignment(self):        
-        input = """[[var(a,integer)],[],[assign(a,1),call(writeInt,1)]]."""
+    
+    def test_writeInt(self):        
+        input = """[[var(a, integer)],[],[assign(a,1),call(writeInt,[a])]]."""
         expect = "1"
         self.assertTrue(TestVM.test(input, expect, 409))
+
+    def test_assignment(self):        
+        input = """[[var(a,integer)],[],[assign(a,add(1,2)),call(writeInt,[a])]]."""
+        expect = "3"
+        self.assertTrue(TestVM.test(input, expect, 410))
