@@ -338,7 +338,7 @@ reduce_all(config(V, _), _) :-
 	throw(undeclare_identifier(V)).
 
 reduce_stmt(config([], Env), config(_,Env)) :- true.
-reduce_stmt(config([call(writeInt,[X])|Rest], Env), config(_,Env2)) :-
+reduce_stmt(config([call(writeInt,[X])|Rest], Env), config(call(writeInt,[X]),Env2)) :-
 	reduce_all(config(X,Env),config(V,Env)),
     (check_type(V, integer); throw(type_mismatch(call(writeInt,[X])))),!,
 	write(V),
@@ -390,12 +390,12 @@ reduce_stmt(config([call(writeStr,[X])|Rest], Env),config(_,Env2)) :-
     write(V),
     reduce_stmt(config(Rest, Env), config(_,Env2)).
 
-reduce_stmt(config([assign(I, E1)|Rest], Env),config(_,Env2)) :-
+reduce_stmt(config([assign(I, E1)|Rest], Env),config(assign(I,E1),Env2)) :-
 	reduce_all(config(E1, Env), config(Rhs, Env)),
 	update_env(I, Rhs, Env, NewEnv),
 	reduce_stmt(config(Rest, NewEnv), config(_, Env2)).
 
-reduce_stmt(config([block(L1, L2)|Rest], Env), config(_, Env2)) :-
+reduce_stmt(config([block(L1, L2)|Rest], Env), config(block(L1,L2), Env2)) :-
     (   L1 = [] ->
         % No new scope, just execute in current env and propagate all changes
         reduce_stmt(config(L2, Env), config(_, BlockEnv1)),
@@ -407,68 +407,110 @@ reduce_stmt(config([block(L1, L2)|Rest], Env), config(_, Env2)) :-
         reduce_stmt(config(Rest, MergedEnv), config(_, Env2))
     ).
 
-reduce_stmt(config([if(E, S1, S2)|Rest], Env),config(_,Env2)) :-
+reduce_stmt(config([if(E, S1, S2)|Rest], Env),config(if(E, S1, S2),Env2)) :-
     reduce_all(config(E, Env), config(V1, Env)),
     (check_type(V1, boolean); throw(type_mismatch(if(E, S1, S2)))),!,
     (V1 = true -> reduce_stmt(config([S1], Env), config(_,NewEnv)); reduce_stmt(config([S2], Env), config(_,NewEnv))),
     reduce_stmt(config(Rest, NewEnv), config(_,Env2)).
 
-reduce_stmt(config([if(E, S1)|Rest], Env),config(_,Env2)) :-
+reduce_stmt(config([if(E, S1)|Rest], Env),config(if(E, S1),Env2)) :-
     reduce_all(config(E, Env), config(V1, Env)),
     (check_type(V1, boolean); throw(type_mismatch(if(E, S1)))),!,
     (V1 = true -> reduce_stmt(config([S1], Env), config(_,NewEnv)); true),
     reduce_stmt(config(Rest, NewEnv), config(_,Env2)).
 
-% reduce_stmt for while(E, S)
-reduce_stmt(config([while(E, S)|Rest], Env),config(_,Env2)) :- 
-    reduce_all(config(E, Env), config(V, Env)),
+% reduce_stmt for while(E, S) with break/continue handling
+reduce_stmt(config([while(E, S)|Rest], Env), config(while(E,S),Env2)) :- 
+    Env = env(Scopes, PrevStatus),
+    EnvInLoop = env(Scopes, true),  % Đánh dấu đang trong vòng lặp
+    reduce_all(config(E, EnvInLoop), config(V, EnvInLoop)),
     (check_type(V, boolean); throw(type_mismatch(while(E, S)))),!,
     (   V = true
-    ->  reduce_stmt(config([S], Env), config(_, Env1)),  % Thực thi S
-        reduce_stmt(config([while(E, S)], Env1), config(_, NewEnv))  % Lặp lại
+    ->  reduce_stmt(config([S], EnvInLoop), Result),
+        (   Result = config(break(null), Env1)
+        ->  NewEnv = Env1  % Thoát vòng lặp khi gặp break
+        ;   Result = config(continue(null), Env1)
+        ->  reduce_stmt(config([while(E, S)], Env1), config(while(E,S), NewEnv))  % Bỏ qua phần còn lại, tiếp tục vòng lặp
+        ;   Result = config(_, Env1)
+        ->  reduce_stmt(config([while(E, S)], Env1), config(while(E,S), NewEnv))
+        )
     ;   V = false,
-        NewEnv = Env
+        NewEnv = EnvInLoop
     ),
-    reduce_stmt(config(Rest, NewEnv), config(_,Env2)).
+    NewEnv = env(Scopes2, _),
+    EnvAfterLoop = env(Scopes2, PrevStatus),
+    reduce_stmt(config(Rest, EnvAfterLoop), config(_,Env2)).
 
-% reduce_stmt for do(L, E)
-reduce_stmt(config([do(L, E)|Rest], Env), config(_, Env2)) :- 
-    % Thực thi danh sách câu lệnh L trước
-    reduce_stmt(config(L, Env), config(_,Env1)),
-    % Đánh giá điều kiện E
-    reduce_all(config(E, Env1), config(V, Env1)),
-    (check_type(V, boolean); throw(type_mismatch(do(L, E)))),!,
-    (   V = true
-    ->  reduce_stmt(config([do(L, E)], Env1), config(_, NewEnv))  % Lặp lại
-    ;   V = false,
-        NewEnv = Env1
+
+% reduce_stmt for do(L, E) with break/continue handling
+reduce_stmt(config([do(L, E)|Rest], Env), config(do, Env2)) :- 
+    Env = env(Scopes, PrevStatus),
+    EnvInLoop = env(Scopes, true),  % Đánh dấu đang trong vòng lặp
+    reduce_stmt(config(L, EnvInLoop), Result),
+    (   Result = config(break, Env1)
+    ->  NewEnv = Env1  % Thoát vòng lặp khi gặp break
+    ;   Result = config(continue, Env1)
+    ->  reduce_all(config(E, Env1), config(V, Env1)),
+        (check_type(V, boolean); throw(type_mismatch(do(L, E)))),!,
+        (   V = true
+        ->  reduce_stmt(config([do(L, E)], Env1), config(_, NewEnv))
+        ;   V = false,
+            NewEnv = Env1
+        )
+    ;   Result = config(_, Env1)
+    ->  reduce_all(config(E, Env1), config(V, Env1)),
+        (check_type(V, boolean); throw(type_mismatch(do(L, E)))),!,
+        (   V = true
+        ->  reduce_stmt(config([do(L, E)], Env1), config(_, NewEnv))
+        ;   V = false,
+            NewEnv = Env1
+        )
     ),
-    reduce_stmt(config(Rest, NewEnv), config(_,Env2)).
+    NewEnv = env(Scopes2, _),
+    EnvAfterLoop = env(Scopes2, PrevStatus),
+    reduce_stmt(config(Rest, EnvAfterLoop), config(_,Env2)).
 
 
-% reduce_stmt for loop(E, S)
+% reduce_stmt for loop(E, S) with break/continue handling
 reduce_stmt(config([loop(E, S)|Rest], Env), config(_,Env2)) :- 
-    reduce_all(config(E, Env), config(N, Env)),
+    Env = env(Scopes, PrevStatus),
+    EnvInLoop = env(Scopes, true),  % Đánh dấu đang trong vòng lặp
+    reduce_all(config(E, EnvInLoop), config(N, EnvInLoop)),
     (check_type(E, integer); throw(type_mismatch(loop(E,S)))),!,
     N >= 0,  % Đảm bảo số lần lặp không âm
-    reduce_loop(N, S, Env, NewEnv),
-    reduce_stmt(config(Rest,NewEnv), config(_,Env2)).
+    reduce_loop_with_ctrl(N, S, EnvInLoop, NewEnv),
+    NewEnv = env(Scopes2, _),
+    EnvAfterLoop = env(Scopes2, PrevStatus),
+    reduce_stmt(config(Rest, EnvAfterLoop), config(_,Env2)).
 
-reduce_stmt(config([break(null)|Rest], Env), config(_,Env2)) :-
-    reduce_stmt(config(Rest, Env), config(_,Env2)).
-reduce_stmt(config([continue(null)|Rest], Env),config(_,Env2)) :-
-    reduce_stmt(config(Rest, Env), config(_,Env2)).
+
+% Handle break/continue with exception if not in loop
+reduce_stmt(config([break(null)|_], env(_, false)), _) :-
+    throw(break_not_in_loop(null)).
+reduce_stmt(config([continue(null)|_], env(_, false)), _) :-
+    throw(continue_not_in_loop(null)).
+
+reduce_stmt(config([break(null)|_], env(Scopes, true)), config(break(null), env(Scopes, true))) :- !.
+reduce_stmt(config([continue(null)|_], env(Scopes, true)), config(continue(null), env(Scopes, true))) :- !.
 % reduce_stmt(config([call(I, L)|Rest], Env),_) :-
 %     reduce_all(config(L, Env), config(V1, Env)),
 %     check_declared(I, Env, id(I, func, _, _)),
 %     reduce_stmt(config(Rest, Env), _).
 
-% Helper predicate to execute S N times
-reduce_loop(0, _, Env, Env) :- !.
-reduce_loop(N, S, Env, NewEnv) :- 
+
+% Helper predicate for loop with break/continue
+reduce_loop_with_ctrl(0, _, Env, Env) :- !.
+reduce_loop_with_ctrl(N, S, Env, NewEnv) :-
     N > 0,
-    reduce_stmt(config([S], Env), config(_, Env1)),
-    N1 is N - 1,
-    reduce_loop(N1, S, Env1, NewEnv).
+    reduce_stmt(config([S], Env), Result),
+    (   Result = config(break, Env1)
+    ->  NewEnv = Env1  % Thoát vòng lặp khi gặp break
+    ;   Result = config(continue, Env1)
+    ->  N1 is N - 1,
+        reduce_loop_with_ctrl(N1, S, Env1, NewEnv)  % Bỏ qua phần còn lại, tiếp tục vòng lặp
+    ;   Result = config(_, Env1)
+    ->  N1 is N - 1,
+        reduce_loop_with_ctrl(N1, S, Env1, NewEnv)
+    ).
 
 

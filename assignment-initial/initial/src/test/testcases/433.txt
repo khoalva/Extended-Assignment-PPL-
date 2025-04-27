@@ -1,0 +1,1 @@
+[[var(a,integer)],[],[assign(a,0),do([call(writeInt,[a]),if(le(a,2),continue(null)),assign(a,add(a,1))],le(a,3))]].
