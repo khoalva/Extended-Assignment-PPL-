@@ -99,6 +99,16 @@ class VMSuite(unittest.TestCase):
         self.assertTrue(TestVM.test(input, expect, 419))
     
     def test_complex_bool_expression_2(self):        
-        input = """[[var(a,integer),var(b,integer)],[],[call(writeBool,[assign(a,10),assign(b,10),band(eql(a,b),ne(3,2))])]]."""
+        input = """[[var(a,integer),var(b,integer)],[],[assign(a,10),assign(b,10),call(writeBool,[band(eql(a,b),ne(3,2))])]]."""
         expect = "true"
         self.assertTrue(TestVM.test(input, expect, 420))
+    
+    def test_if_statement(self):        
+        input = """[[],[],[if(le(3,3), call(writeInt,[1])), call(writeInt,[2])]]."""
+        expect = "12"
+        self.assertTrue(TestVM.test(input, expect, 421))
+
+    def test_if_else_statement(self):
+        input = """[[],[],[if(le(3,2), call(writeInt,[1]), call(writeInt,[2]))]]."""
+        expect = "2"
+        self.assertTrue(TestVM.test(input, expect, 422))

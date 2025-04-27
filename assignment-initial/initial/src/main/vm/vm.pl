@@ -307,6 +307,7 @@ reduce_all(config(V, _), _) :-
 	atom(V),
 	throw(undeclare_identifier(V)).
 
+reduce_stmt(config([], _Env), _) :- true.
 reduce_stmt(config([call(writeInt,[X])|Rest], Env),_) :-
 	reduce_all(config(X,Env),config(V,Env)),
     (check_type(V, integer); throw(type_mismatch(call(writeInt,[X])))),!,
@@ -363,6 +364,46 @@ reduce_stmt(config([assign(I, E1)|Rest], Env),_) :-
 	reduce_all(config(E1, Env), config(Rhs, Env)),
 	update_env(I, Rhs, Env, NewEnv),
 	reduce_stmt(config(Rest, NewEnv), _).
+
+reduce_stmt(config([block(L1, L2)|Rest], Env),_) :-
+    create_env(L1, Env, NewEnv),
+    reduce_stmt(config(L2, NewEnv), _),
+    reduce_stmt(config(Rest, NewEnv), _).
+
+reduce_stmt(config([if(E, S1, S2)|Rest], Env),_) :-
+    reduce_all(config(E, Env), config(V1, Env)),
+    (check_type(V1, boolean); throw(type_mismatch(if(E, S1, S2)))),!,
+    (V1 = true -> reduce_stmt(config([S1], Env), _); reduce_stmt(config([S2], Env), _)),
+    reduce_stmt(config(Rest, Env), _).
+
+reduce_stmt(config([if(E, S1)|Rest], Env),_) :-
+    reduce_all(config(E, Env), config(V1, Env)),
+    (check_type(V1, boolean); throw(type_mismatch(if(E, S1)))),!,
+    (V1 = true -> reduce_stmt(config([S1], Env), _); true),
+    reduce_stmt(config(Rest, Env), _).
+
+reduce_stmt(config([while(E, S)|Rest], Env),_) :-
+    reduce_all(config(E, Env), config(V, Env)),
+    (check_type(V1, boolean); throw(type_mismatch(if(E, S1)))),!,
+    (V = true -> reduce_stmt(config(S, Env), _); true),
+    reduce_stmt(config(Rest, Env), _).
+reduce_stmt(config([do(L, E)|Rest], Env),_) :-
+    reduce_stmt(config(L, Env), _),
+    reduce_stmt(config([while(E, L)|Rest], Env), _).
+reduce_stmt(config([loop(E, S)|Rest], Env),_) :-
+    reduce_all(config(E, Env), config(V1, Env)),
+    check_type(V1, boolean),
+    (V1 = true -> reduce_stmt(config(S, Env), _); true),
+    reduce_stmt(config(Rest, Env), _).
+reduce_stmt(config([break(null)|Rest], Env),_) :-
+    reduce_stmt(config(Rest, Env), _).
+reduce_stmt(config([continue(null)|Rest], Env),_) :-
+    reduce_stmt(config(Rest, Env), _).
+% reduce_stmt(config([call(I, L)|Rest], Env),_) :-
+%     reduce_all(config(L, Env), config(V1, Env)),
+%     check_declared(I, Env, id(I, func, _, _)),
+%     reduce_stmt(config(Rest, Env), _).
+
 
 
 
