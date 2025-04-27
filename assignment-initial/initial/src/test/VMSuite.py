@@ -112,3 +112,28 @@ class VMSuite(unittest.TestCase):
         input = """[[],[],[if(le(3,2), call(writeInt,[1]), call(writeInt,[2]))]]."""
         expect = "2"
         self.assertTrue(TestVM.test(input, expect, 422))
+
+    def test_block_statement(self):        
+        input = """[[var(a,integer)],[],[block([],[assign(a,1),call(writeInt,[a])])]]."""
+        expect = "1"
+        self.assertTrue(TestVM.test(input, expect, 423))
+    
+    def test_block_statement_2(self):        
+        input = """[[var(a,integer)],[],[block([],[assign(a,1)]),call(writeInt,[a])]]."""
+        expect = "1"
+        self.assertTrue(TestVM.test(input, expect, 424))
+    
+    def test_while_statement(self):        
+        input = """[[var(a,integer)],[],[assign(a,0),while(le(a,3),block([],[call(writeInt,[a]),assign(a,add(a,1))]))]]."""
+        expect = "0123"
+        self.assertTrue(TestVM.test(input, expect, 425))
+    
+    def test_do_statement(self):        
+        input = """[[var(a,integer)],[],[assign(a,0),do([call(writeInt,[a]),assign(a,add(a,1))],le(a,3))]]."""
+        expect = "0123"
+        self.assertTrue(TestVM.test(input, expect, 426))
+    
+    def test_loop_statement(self):        
+        input = """[[],[],[loop(5, call(writeInt,[1]))]]."""
+        expect = "11111"
+        self.assertTrue(TestVM.test(input, expect, 427))

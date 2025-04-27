@@ -28,6 +28,30 @@ create_env([const(X,Y)|_],env([_],_),_):- is_builtin(X,_),!,throw(redeclare_iden
 create_env([const(X,Y)|_],env([L1|_],_),_):-has_declared(X,L1,_),!,throw(redeclare_identifier(const(X,Y))).
 create_env([const(X,Y)|L],env([L1|L2],T),L3):- create_env(L,env([[id(X,const,Y,undefined)|L1]|L2],T),L3).
 
+
+% Helper: merge_env_after_block(+BlockEnv, +OuterEnv, -MergedEnv)
+% BlockEnv = env([BlockScope|OuterScopes], Status)
+% OuterEnv = env([OuterScope|OuterScopes], Status)
+% MergedEnv = env([NewOuterScope|OuterScopes], Status)
+merge_env_after_block(env([_BlockScope|OuterScopes], Status), env([OuterScope|OuterScopes], Status), env([NewOuterScope|OuterScopes], Status)) :-
+    % Only update variables that exist in OuterScope
+    update_outer_scope(OuterScope, OuterScopes, NewOuterScope).
+
+% update_outer_scope(+OldScope, +Scopes, -NewScope)
+% For each variable in OldScope, get its value from the corresponding scope in [OldScope|Scopes]
+update_outer_scope([], _, []).
+update_outer_scope([id(Name, Kind, Type, _)|T], Scopes, [id(Name, Kind, Type, Value)|T2]) :-
+    get_var_value(Name, [Scopes], Value),
+    update_outer_scope(T, Scopes, T2).
+
+% get_var_value(+Name, +Scopes, -Value)
+get_var_value(Name, [Scope|_], Value) :-
+    member(id(Name, _, _, Value), Scope), !.
+get_var_value(Name, [_|Rest], Value) :-
+    get_var_value(Name, Rest, Value).
+get_var_value(_, [], undefined).
+
+
 boolean(true).
 boolean(false).
 
@@ -290,10 +314,16 @@ reduce_all(config(V, Env), config(V, Env)) :-
     boolean(V), !. % Giá trị boolean
 reduce_all(config(V, Env), config(Value, Env)) :- 
     atom(V), 
-    check_declared(V, Env, id(V, const, _, Value)), !. % Giá trị hằng
+    check_declared(V, Env, id(V, const, _, Value)),
+    ( Value \= undefined -> true
+        ; throw(undefined_variable(V))
+        ), !. % Giá trị hằng
 reduce_all(config(V, Env), config(Value, Env)) :- 
     atom(V), 
-    check_declared(V, Env, id(V, var, _, Value)), !.
+    check_declared(V, Env, id(V, var, _, Value)),
+    ( Value \= undefined -> true
+        ; throw(undefined_variable(V))
+        ), !.
 reduce_all(config(V, Env), config(V, Env)) :- 
     integer(V), !.
 reduce_all(config(V, Env), config(V, Env)) :- 
@@ -307,103 +337,138 @@ reduce_all(config(V, _), _) :-
 	atom(V),
 	throw(undeclare_identifier(V)).
 
-reduce_stmt(config([], _Env), _) :- true.
-reduce_stmt(config([call(writeInt,[X])|Rest], Env),_) :-
+reduce_stmt(config([], Env), config(_,Env)) :- true.
+reduce_stmt(config([call(writeInt,[X])|Rest], Env), config(_,Env2)) :-
 	reduce_all(config(X,Env),config(V,Env)),
     (check_type(V, integer); throw(type_mismatch(call(writeInt,[X])))),!,
 	write(V),
-	reduce_stmt(config(Rest, Env), _).
-reduce_stmt(config([call(writeIntLn,[X])|Rest], Env),_) :-
+	reduce_stmt(config(Rest, Env), config(_,Env2)).
+reduce_stmt(config([call(writeIntLn,[X])|Rest], Env),config(_,Env2)) :-
     reduce_all(config(X,Env),config(V,Env)),
     (check_type(V, integer); throw(type_mismatch(call(writeIntLn,[X])))),!,
     writeln(V),
-    reduce_stmt(config(Rest, Env), _).
-reduce_stmt(config([call(readInt,V)|Rest], Env),_) :-
+    reduce_stmt(config(Rest, Env), config(_,Env2)).
+reduce_stmt(config([call(readInt,V)|Rest], Env),config(_,Env2)) :-
     read(V),
     (check_type(V, integer); throw(type_mismatch(call(readInt,V)))),!,
     update_env(V, V, Env, NewEnv),
-    reduce_stmt(config(Rest, NewEnv), _).
-reduce_stmt(config([call(readReal,[])|Rest], Env),_) :-
+    reduce_stmt(config(Rest, NewEnv), config(_,Env2)).
+reduce_stmt(config([call(readReal,[])|Rest], Env),config(_,Env2)) :-
     read(V),
     (float(V);throw(type_mismatch(call(readReal,[])))),!,
     update_env(V, V, Env, NewEnv),
-    reduce_stmt(config(Rest, NewEnv), _).
-reduce_stmt(config([call(writeReal,[X])|Rest], Env),_) :-
+    reduce_stmt(config(Rest, NewEnv), config(_,Env2)).
+reduce_stmt(config([call(writeReal,[X])|Rest], Env),config(_,Env2)) :-
     reduce_all(config(X,Env),config(V,Env)),
     write(V),
-    reduce_stmt(config(Rest, Env), _).
-reduce_stmt(config([call(writeRealLn,[X])|Rest], Env),_) :-
+    reduce_stmt(config(Rest, Env), config(_,Env2)).
+reduce_stmt(config([call(writeRealLn,[X])|Rest], Env),config(_,Env2)) :-
     reduce_all(config(X,Env),config(V,Env)),
     writeln(V),
-    reduce_stmt(config(Rest, Env), _).
-reduce_stmt(config([call(writeBool,[X])|Rest], Env),_) :-    
+    reduce_stmt(config(Rest, Env), config(_,Env2)).
+reduce_stmt(config([call(writeBool,[X])|Rest], Env),config(_,Env2)) :-    
     reduce_all(config(X,Env),config(V,Env)),
     write(V),
-    reduce_stmt(config(Rest, Env), _).
-reduce_stmt(config([call(writeBoolLn,[X])|Rest], Env),_) :-
+    reduce_stmt(config(Rest, Env), config(_,Env2)).
+reduce_stmt(config([call(writeBoolLn,[X])|Rest], Env),config(_,Env2)) :-
     reduce_all(config(X,Env),config(V,Env)),
     writeln(V),
-    reduce_stmt(config(Rest, Env), _).
-reduce_stmt(config([call(readBool,V)|Rest], Env),_) :-
+    reduce_stmt(config(Rest, Env), config(_,Env2)).
+reduce_stmt(config([call(readBool,V)|Rest], Env),config(_,Env2)) :-
     read(V),
     (check_type(V, boolean); throw(type_mismatch(call(readBool,V)))),!,
     update_env(V, V, Env, NewEnv),
-    reduce_stmt(config(Rest, NewEnv), _).
-reduce_stmt(config([call(writeStrLn,[X])|Rest], Env),_) :-
+    reduce_stmt(config(Rest, NewEnv), config(_,Env2)).
+reduce_stmt(config([call(writeStrLn,[X])|Rest], Env),config(_,Env2)) :-
     reduce_all(config(X,Env),config(V,Env)),
     (check_type(V, string); throw(type_mismatch(call(writeStrLn,V)))),!,
     writeln(V),
-    reduce_stmt(config(Rest, Env), _).
-reduce_stmt(config([call(writeStr,[X])|Rest], Env),_) :-
+    reduce_stmt(config(Rest, Env), config(_,Env2)).
+reduce_stmt(config([call(writeStr,[X])|Rest], Env),config(_,Env2)) :-
     reduce_all(config(X,Env),config(V,Env)),
     (check_type(V, string); throw(type_mismatch(call(writeStr,V)))),!,
     write(V),
-    reduce_stmt(config(Rest, Env), _).
+    reduce_stmt(config(Rest, Env), config(_,Env2)).
 
-reduce_stmt(config([assign(I, E1)|Rest], Env),_) :-
+reduce_stmt(config([assign(I, E1)|Rest], Env),config(_,Env2)) :-
 	reduce_all(config(E1, Env), config(Rhs, Env)),
 	update_env(I, Rhs, Env, NewEnv),
-	reduce_stmt(config(Rest, NewEnv), _).
+	reduce_stmt(config(Rest, NewEnv), config(_, Env2)).
 
-reduce_stmt(config([block(L1, L2)|Rest], Env),_) :-
-    create_env(L1, Env, NewEnv),
-    reduce_stmt(config(L2, NewEnv), _),
-    reduce_stmt(config(Rest, NewEnv), _).
+reduce_stmt(config([block(L1, L2)|Rest], Env), config(_, Env2)) :-
+    (   L1 = [] ->
+        % No new scope, just execute in current env and propagate all changes
+        reduce_stmt(config(L2, Env), config(_, BlockEnv1)),
+        reduce_stmt(config(Rest, BlockEnv1), config(_, Env2))
+    ;   % New scope created
+        create_env(L1, Env, BlockEnv),
+        reduce_stmt(config(L2, BlockEnv), config(_, BlockEnv1)),
+        merge_env_after_block(BlockEnv1, Env, MergedEnv),
+        reduce_stmt(config(Rest, MergedEnv), config(_, Env2))
+    ).
 
-reduce_stmt(config([if(E, S1, S2)|Rest], Env),_) :-
+reduce_stmt(config([if(E, S1, S2)|Rest], Env),config(_,Env2)) :-
     reduce_all(config(E, Env), config(V1, Env)),
     (check_type(V1, boolean); throw(type_mismatch(if(E, S1, S2)))),!,
-    (V1 = true -> reduce_stmt(config([S1], Env), _); reduce_stmt(config([S2], Env), _)),
-    reduce_stmt(config(Rest, Env), _).
+    (V1 = true -> reduce_stmt(config([S1], Env), config(_,NewEnv)); reduce_stmt(config([S2], Env), config(_,NewEnv))),
+    reduce_stmt(config(Rest, NewEnv), config(_,Env2)).
 
-reduce_stmt(config([if(E, S1)|Rest], Env),_) :-
+reduce_stmt(config([if(E, S1)|Rest], Env),config(_,Env2)) :-
     reduce_all(config(E, Env), config(V1, Env)),
     (check_type(V1, boolean); throw(type_mismatch(if(E, S1)))),!,
-    (V1 = true -> reduce_stmt(config([S1], Env), _); true),
-    reduce_stmt(config(Rest, Env), _).
+    (V1 = true -> reduce_stmt(config([S1], Env), config(_,NewEnv)); true),
+    reduce_stmt(config(Rest, NewEnv), config(_,Env2)).
 
-reduce_stmt(config([while(E, S)|Rest], Env),_) :-
+% reduce_stmt for while(E, S)
+reduce_stmt(config([while(E, S)|Rest], Env),config(_,Env2)) :- 
     reduce_all(config(E, Env), config(V, Env)),
-    (check_type(V1, boolean); throw(type_mismatch(if(E, S1)))),!,
-    (V = true -> reduce_stmt(config(S, Env), _); true),
-    reduce_stmt(config(Rest, Env), _).
-reduce_stmt(config([do(L, E)|Rest], Env),_) :-
-    reduce_stmt(config(L, Env), _),
-    reduce_stmt(config([while(E, L)|Rest], Env), _).
-reduce_stmt(config([loop(E, S)|Rest], Env),_) :-
-    reduce_all(config(E, Env), config(V1, Env)),
-    check_type(V1, boolean),
-    (V1 = true -> reduce_stmt(config(S, Env), _); true),
-    reduce_stmt(config(Rest, Env), _).
-reduce_stmt(config([break(null)|Rest], Env),_) :-
-    reduce_stmt(config(Rest, Env), _).
-reduce_stmt(config([continue(null)|Rest], Env),_) :-
-    reduce_stmt(config(Rest, Env), _).
+    (check_type(V, boolean); throw(type_mismatch(while(E, S)))),!,
+    (   V = true
+    ->  reduce_stmt(config([S], Env), config(_, Env1)),  % Thực thi S
+        reduce_stmt(config([while(E, S)], Env1), config(_, NewEnv))  % Lặp lại
+    ;   V = false,
+        NewEnv = Env
+    ),
+    reduce_stmt(config(Rest, NewEnv), config(_,Env2)).
+
+% reduce_stmt for do(L, E)
+reduce_stmt(config([do(L, E)|Rest], Env), config(_, Env2)) :- 
+    % Thực thi danh sách câu lệnh L trước
+    reduce_stmt(config(L, Env), config(_,Env1)),
+    % Đánh giá điều kiện E
+    reduce_all(config(E, Env1), config(V, Env1)),
+    (check_type(V, boolean); throw(type_mismatch(do(L, E)))),!,
+    (   V = true
+    ->  reduce_stmt(config([do(L, E)], Env1), config(_, NewEnv))  % Lặp lại
+    ;   V = false,
+        NewEnv = Env1
+    ),
+    reduce_stmt(config(Rest, NewEnv), config(_,Env2)).
+
+
+% reduce_stmt for loop(E, S)
+reduce_stmt(config([loop(E, S)|Rest], Env), config(_,Env2)) :- 
+    reduce_all(config(E, Env), config(N, Env)),
+    (check_type(E, integer); throw(type_mismatch(loop(E,S)))),!,
+    N >= 0,  % Đảm bảo số lần lặp không âm
+    reduce_loop(N, S, Env, NewEnv),
+    reduce_stmt(config(Rest,NewEnv), config(_,Env2)).
+
+reduce_stmt(config([break(null)|Rest], Env), config(_,Env2)) :-
+    reduce_stmt(config(Rest, Env), config(_,Env2)).
+reduce_stmt(config([continue(null)|Rest], Env),config(_,Env2)) :-
+    reduce_stmt(config(Rest, Env), config(_,Env2)).
 % reduce_stmt(config([call(I, L)|Rest], Env),_) :-
 %     reduce_all(config(L, Env), config(V1, Env)),
 %     check_declared(I, Env, id(I, func, _, _)),
 %     reduce_stmt(config(Rest, Env), _).
 
-
+% Helper predicate to execute S N times
+reduce_loop(0, _, Env, Env) :- !.
+reduce_loop(N, S, Env, NewEnv) :- 
+    N > 0,
+    reduce_stmt(config([S], Env), config(_, Env1)),
+    N1 is N - 1,
+    reduce_loop(N1, S, Env1, NewEnv).
 
 
