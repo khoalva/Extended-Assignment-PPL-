@@ -1,0 +1,1 @@
+[[],[],[call(writeInt,[imod(3,2)])]].

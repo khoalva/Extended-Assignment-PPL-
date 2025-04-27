@@ -1,0 +1,1 @@
+[[var(a, boolean), var(b, boolean)],[],[assign(a,true),assign(b,bnot(false)),call(writeBool,[band(a,b)])]].

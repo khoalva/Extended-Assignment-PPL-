@@ -1,0 +1,1 @@
+[[],[],[call(writeBool,[band(le(3,2),bor(true,false))])]].

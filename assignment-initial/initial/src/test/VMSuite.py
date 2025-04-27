@@ -52,3 +52,53 @@ class VMSuite(unittest.TestCase):
         input = """[[var(a,integer)],[],[assign(a,add(1,2)),call(writeInt,[a])]]."""
         expect = "3"
         self.assertTrue(TestVM.test(input, expect, 410))
+    
+    def test_rdiv_int_expression(self):        
+        input = """[[],[],[call(writeInt,[rdiv(3,2)])]]."""
+        expect = "1"
+        self.assertTrue(TestVM.test(input, expect, 411))
+
+    def test_rdiv_float_expression(self):        
+        input = """[[],[],[call(writeInt,[rdiv(3.0,2.0)])]]."""
+        expect = "Type mismatch: call(writeInt,[3.0 rdiv 2.0])"
+        self.assertTrue(TestVM.test(input, expect, 412))
+
+    def test_idiv_expression(self):        
+        input = """[[],[],[call(writeInt,[idiv(3,2)])]]."""
+        expect = "1"
+        self.assertTrue(TestVM.test(input, expect, 413))
+
+    def test_mod_expression(self):        
+        input = """[[],[],[call(writeInt,[imod(3,2)])]]."""
+        expect = "1"
+        self.assertTrue(TestVM.test(input, expect, 414))
+
+    def test_bor_expression(self):        
+        input = """[[var(a, boolean), var(b, boolean)],[],[assign(a,true),assign(b,false),call(writeBool,[bor(a,b)])]]."""
+        expect = "true"
+        self.assertTrue(TestVM.test(input, expect, 415))
+
+    def test_writeStr(self):        
+        input = """[[var(a,string)],[],[assign(a,"Hello"),call(writeStr,[a])]]."""
+        expect = "Hello"
+        self.assertTrue(TestVM.test(input, expect, 416))
+    
+    def test_band_expression(self):        
+        input = """[[var(a, boolean), var(b, boolean)],[],[assign(a,true),assign(b,bnot(false)),call(writeBool,[band(a,b)])]]."""
+        expect = "true"
+        self.assertTrue(TestVM.test(input, expect, 417))
+
+    def test_le_expression(self):        
+        input = """[[],[],[call(writeBool,[le(3,3)])]]."""
+        expect = "true"
+        self.assertTrue(TestVM.test(input, expect, 418))
+    
+    def test_complex_bool_expression(self):        
+        input = """[[],[],[call(writeBool,[band(le(3,2),bor(true,false))])]]."""
+        expect = "false"
+        self.assertTrue(TestVM.test(input, expect, 419))
+    
+    def test_complex_bool_expression_2(self):        
+        input = """[[var(a,integer),var(b,integer)],[],[call(writeBool,[assign(a,10),assign(b,10),band(eql(a,b),ne(3,2))])]]."""
+        expect = "true"
+        self.assertTrue(TestVM.test(input, expect, 420))

@@ -1,0 +1,1 @@
+[[var(a,integer),var(b,integer)],[],[call(writeBool,[assign(a,10),assign(b,10),band(eql(a,b),ne(3,2))])]].
