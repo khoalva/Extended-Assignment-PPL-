@@ -11,7 +11,7 @@ reduce_prog([Var,Func,Body]) :-
 		reduce_stmt(config(Body,Env2),_).
 											
 %check if X has been declared in the first list of the environment
-has_declared(X,[id(X,_,_,Value)|_],id(X,_,_,Value)) :- !.
+has_declared(X,[id(X,Y,Z,Value)|_],id(X,Y,Z,Value)) :- !.
 has_declared(X,[_|L],R) :-  has_declared(X,L,R).
 has_declared(_, [], _) :- fail.
 %check if X has been declared in the environment
@@ -136,8 +136,8 @@ update_env(Var, _, env([], _, _), _) :-
 
 % replace_var(Scope, Var, Value, NewScope)
 % Replaces the variable's value in the scope.
-replace_var([id(Var, var, _, _)|T], id(Var, var, Type, Value), [id(Var, var, Type, Value)|T]) :- !.
-replace_var([H|T], id(Var, var, Type, Value), [H|NewT]) :- replace_var(T, id(Var, var, Type, Value), NewT).
+replace_var([id(Var, Kind, _, _)|T], id(Var, Kind, Type, Value), [id(Var, Kind, Type, Value)|T]) :- !.
+replace_var([H|T], id(Var, Kind, Type, Value), [H|NewT]) :- replace_var(T, id(Var, Kind, Type, Value), NewT).
 
 
 reduce(config(sub(E1), Env), config(R,Env)) :-  
@@ -367,21 +367,73 @@ reduce(config(eql(E1, E2), Env), _) :-
        ),
     throw(type_mismatch(eql(E1, E2))).
 
+% Function call expression - evaluate function and get return value
+reduce(config(call(Name, Args), Env), config(ReturnValue, Env)) :-
+    % Check if function exists and handle appropriately
+    (member(func(Name, Params, RetType, Body), Funcs) -> 
+        % User-defined function
+        handle_user_function(Name, Args, Params, RetType, Body, Env, ReturnValue)
+    ;
+        % Try built-in function
+        (is_builtin(Name, func) -> 
+            handle_builtin_function(Name, Args, Env, ReturnValue)
+        ;
+            % Neither user-defined nor built-in
+            throw(undeclare_function(Name))
+        )
+    ).
+
+% Handle user-defined function execution
+handle_user_function(Name, Args, Params, RetType, Body, Env, ReturnValue) :-
+    Env = env(Scopes, Status, Funcs),
+    % Validate argument count
+    length(Args, ArgCount),
+    length(Params, ParamCount),
+    (ArgCount =:= ParamCount -> true ; throw(wrong_number_of_argument(call(Name, Args)))),
+    
+    % Evaluate arguments in current environment
+    evaluate_args_with_originals(Args, Env, ArgValues, _),
+    
+    % Create new environment with parameters as innermost scope
+    create_function_env(ArgValues, Params, Funcs, FuncEnv),
+    
+    % Execute function body
+    reduce_stmt(config(Body, FuncEnv), config(_, ResultEnv)),
+    
+    % Extract the return value - function name is used as the return variable
+    check_declared(Name, ResultEnv, id(Name, _, RetType, ReturnValue)),
+    % Verify return value matches declared return type
+    check_type(ReturnValue, RetType).
+
+% Handle built-in function execution
+handle_builtin_function(Name, Args, Env, ReturnValue) :-
+    % Evaluate arguments while preserving originals for error messages
+    evaluate_args_with_originals(Args, Env, ArgValues, OrigArgs),
+    % Call appropriate built-in function
+    execute_builtin_func(Name, ArgValues, OrigArgs, ReturnValue).
+
+% Execute built-in functions
+execute_builtin_func(readInt, [], _, Value) :- 
+    read(Value), 
+    (integer(Value); throw(type_mismatch(call(readInt,[])))), !.
+    
+execute_builtin_func(readReal, [], _, Value) :- 
+    read(Value), 
+    (float(Value); throw(type_mismatch(call(readReal,[])))), !.
+    
+execute_builtin_func(readBool, [], _, Value) :- 
+    read(Value), 
+    (boolean(Value); throw(type_mismatch(call(readBool,[])))), !.
+
 
 reduce_all(config(V, Env), config(V, Env)) :- 
     boolean(V), !. % Giá trị boolean
 reduce_all(config(V, Env), config(Value, Env)) :- 
     atom(V), 
-    check_declared(V, Env, id(V, const, _, Value)),
+    check_declared(V, Env, id(V, _, _, Value)),
     ( Value \= undefined -> true
         ; throw(undefined_variable(V))
         ), !. % Giá trị hằng
-reduce_all(config(V, Env), config(Value, Env)) :- 
-    atom(V), 
-    check_declared(V, Env, id(V, var, _, Value)),
-    ( Value \= undefined -> true
-        ; throw(undefined_variable(V))
-        ), !.
 reduce_all(config(V, Env), config(V, Env)) :- 
     integer(V), !.
 reduce_all(config(V, Env), config(V, Env)) :- 
@@ -523,24 +575,36 @@ reduce_stmt(config([call(Name, Args)|Rest], env(Scopes, Status, Funcs)), config(
         % Validate argument count
         length(Args, ArgCount),
         length(Params, ParamCount),
-        (ArgCount =:= ParamCount ; throw(argument_count_mismatch(Name, ParamCount, ArgCount))),
+
+        (ArgCount =:= ParamCount -> true ; throw(wrong_number_of_argument(call(Name, Args)))),
         
         % Evaluate arguments in current environment
-        evaluate_args(Args, Params, env(Scopes, Status, Funcs), ParamValues),
+        evaluate_args_with_originals(Args, env(Scopes, Status, Funcs), ArgValues, _),
         
         % Create new environment with parameters as innermost scope
-        % Note: preserves function list but creates new parameter scope
-        create_function_env(ParamValues, Funcs, ProcEnv),
-        
+        % Preserves function list but creates new parameter scope
+        create_function_env(ArgValues, Params, Funcs, ProcEnv),
+ 
         % Execute procedure body
         reduce_stmt(config(Body, ProcEnv), config(_, _)),
-        
+  
         % Continue with rest (procedures don't return values)
         reduce_stmt(config(Rest, env(Scopes, Status, Funcs)), config(NewStatus, Env2)),
         determine_status(NewStatus, call(Name, Args), OutStatus)
     % Neither built-in nor user-defined
     ; throw(undeclared_procedure(Name))
     ).
+
+% create_function_env(+ArgValues, +Params, +Funcs, -ProcEnv)
+% Creates environment for procedure/function execution with parameters
+create_function_env(ArgValues, Params, Funcs, env([ParamScope], false, Funcs)) :-
+    % Create parameter scope by binding parameter names to argument values
+    create_param_bindings(ArgValues, Params, ParamScope).
+
+% Helper to create parameter bindings
+create_param_bindings([], [], []).
+create_param_bindings([Value|Values], [par(Name, Type)|Params], [id(Name, par, Type, Value)|Bindings]) :-
+    create_param_bindings(Values, Params, Bindings).
 
 % Helper to evaluate args while keeping originals
 evaluate_args_with_originals([], _, [], []).

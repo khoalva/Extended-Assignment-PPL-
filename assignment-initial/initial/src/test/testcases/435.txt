@@ -1,0 +1,1 @@
+[[],[],[loop(5, block([],[call(writeInt,[1]),if(le(2,3),continue(null)),call(writeInt,[2])]))]].
