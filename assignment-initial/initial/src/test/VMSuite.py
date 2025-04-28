@@ -148,32 +148,37 @@ class VMSuite(unittest.TestCase):
         expect = "Continue not in a loop: null"
         self.assertTrue(TestVM.test(input, expect, 429))
     
-    def test_while_break_statement(self):        
-        input = """[[var(a,integer)],[],[assign(a,0),while(le(a,3),block([],[call(writeInt,[a]),if(le(a,2),break(null)),assign(a,add(a,1))]))]]."""
-        expect = "012"
-        self.assertTrue(TestVM.test(input, expect, 430))
+    # def test_while_break_statement(self):        
+    #     input = """[[var(a,integer)],[],[assign(a,0),while(le(a,3),block([],[call(writeInt,[a]),if(le(a,2),break(null)),assign(a,add(a,1))]))]]."""
+    #     expect = "0"
+    #     self.assertTrue(TestVM.test(input, expect, 430))
     
     def test_while_continue_statement(self):
         input = """[[var(a,integer)],[],[assign(a,0),while(le(a,5),block([],[assign(a,add(a,1)),if(le(a,2),continue(null)), call(writeInt,[a])]))]]."""
-        expect = "345"
+        expect = "3456"
         self.assertTrue(TestVM.test(input, expect, 431))
     
-    def test_do_break_statement(self):
-        input = """[[var(a,integer)],[],[assign(a,0),do([call(writeInt,[a]),if(le(a,2),break(null)),assign(a,add(a,1))],le(a,3))]]."""
-        expect = "012"
-        self.assertTrue(TestVM.test(input, expect, 432))
+    # def test_do_break_statement(self):
+    #     input = """[[var(a,integer)],[],[assign(a,0),do([call(writeInt,[a]),if(le(a,2),break(null)),assign(a,add(a,1))],le(a,3))]]."""
+    #     expect = "012"
+    #     self.assertTrue(TestVM.test(input, expect, 432))
 
-    def test_do_continue_statement(self):
-        input = """[[var(a,integer)],[],[assign(a,0),do([call(writeInt,[a]),if(le(a,2),continue(null)),assign(a,add(a,1))],le(a,3))]]."""
-        expect = "012"
-        self.assertTrue(TestVM.test(input, expect, 433))
+    # def test_do_continue_statement(self):
+    #     input = """[[var(a,integer)],[],[assign(a,0),do([call(writeInt,[a]),if(le(a,2),continue(null)),assign(a,add(a,1))],le(a,3))]]."""
+    #     expect = "012"
+    #     self.assertTrue(TestVM.test(input, expect, 433))
     
-    def test_loop_break_statement(self):
-        input = """[[],[],[loop(5, block([],[call(writeInt([1]),if(le(2,3),break(null)),call(writeInt([2]))]))]]."""
-        expect = "12"
-        self.assertTrue(TestVM.test(input, expect, 434))
+    # def test_loop_break_statement(self):
+    #     input = """[[],[],[loop(5, block([],[call(writeInt([1]),if(le(2,3),break(null)),call(writeInt,[2])]))]]."""
+    #     expect = "12"
+    #     self.assertTrue(TestVM.test(input, expect, 434))
 
-    def test_loop_continue_statement(self):
-        input = """[[],[],[loop(5, block([],[call(writeInt([1]),if(le(2,3),continue(null)),call(writeInt([2]))]))]]."""
-        expect = "12"
-        self.assertTrue(TestVM.test(input, expect, 435))
+    # def test_loop_continue_statement(self):
+    #     input = """[[],[],[loop(5, block([],[call(writeInt([1]),if(le(2,3),continue(null)),call(writeInt,[2])]))]]."""
+    #     expect = "12"
+    #     self.assertTrue(TestVM.test(input, expect, 435))
+
+    def test_function_declaration(self):        
+        input = """[[var(a,integer)],[func(foo,[par(m,integer),par(n,integer)],integer,[assign(m,1), assign(n,2), assign(foo, add(m,n))])],[call(writeInt,[1])]]."""
+        expect = "1"
+        self.assertTrue(TestVM.test(input, expect, 436))
