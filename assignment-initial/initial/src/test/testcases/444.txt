@@ -1,0 +1,1 @@
+[[],[],[call(writeInt, [call(foo,[1,2])])]].

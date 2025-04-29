@@ -1,1 +1,1 @@
-Redeclared identifier: func(foo)
+Redeclared function: foo

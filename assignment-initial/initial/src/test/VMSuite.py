@@ -185,12 +185,12 @@ class VMSuite(unittest.TestCase):
     
     def test_function_declaration_2(self):        
         input = """[[var(a,integer)],[func(foo,[par(m,integer),par(n,integer)],integer,[assign(m,1), assign(n,2), assign(foo, add(m,n))]), func(foo,[],string,[])],[]]."""
-        expect = "Redeclared identifier: func(foo)"
+        expect = "Redeclared function: foo"
         self.assertTrue(TestVM.test(input, expect, 437))
     
     def test_function_declaration_3(self):        
         input = """[[var(a,integer)],[func(foo,[par(m,integer),par(n,integer)],integer,[assign(m,1), assign(n,2), assign(foo, add(m,n))]), proc(foo,[],[])],[]]."""
-        expect = "Redeclared identifier: proc(foo)"
+        expect = "Redeclared procedure: foo"
         self.assertTrue(TestVM.test(input, expect, 438))
     
     def test_proc_call(self):        
@@ -207,3 +207,28 @@ class VMSuite(unittest.TestCase):
         input = """[[var(a,integer)],[func(foo,[par(m,integer),par(n,integer)],integer,[assign(m,1), assign(n,2), assign(foo, add(m,n))])],[call(writeInt,[call(foo,[1,2])])]]."""
         expect = "3"
         self.assertTrue(TestVM.test(input, expect, 441))
+    
+    def test_assign_to_constant(self):
+        input = """[[const(a,integer)],[],[assign(a, 1)]]."""
+        expect = "Cannot assign to a constant: a"
+        self.assertTrue(TestVM.test(input, expect, 442))
+    
+    def test_undeclared_procedure(self):
+        input = """[[],[],[call(foo,[1,2])]]."""
+        expect = "Undeclared procedure: foo"
+        self.assertTrue(TestVM.test(input, expect, 443))
+    
+    def test_undeclared_function(self):
+        input = """[[],[],[call(writeInt, [call(foo,[1,2])])]]."""
+        expect = "Undeclared function: foo"
+        self.assertTrue(TestVM.test(input, expect, 444))
+
+    def test_invalid_expression(self):
+        input = """[[var(a,integer)],[func(foo,[],integer,[])],[assign(a,call(foo,[]))]]."""
+        expect = "Invalid expression: call(foo,[])"
+        self.assertTrue(TestVM.test(input, expect, 445))
+    
+    def test_invalid_expression_2(self):
+        input = """[[var(a,integer)],[],[call(writeInt,[a])]]."""
+        expect = "Invalid expression: a"
+        self.assertTrue(TestVM.test(input, expect, 446))

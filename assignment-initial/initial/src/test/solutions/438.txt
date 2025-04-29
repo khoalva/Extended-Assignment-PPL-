@@ -1,1 +1,1 @@
-Redeclared identifier: proc(foo)
+Redeclared procedure: foo

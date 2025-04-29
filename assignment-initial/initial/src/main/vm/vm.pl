@@ -43,7 +43,7 @@ create_env([par(X,Y)|L], env([L1|L2], T, F), L3) :-
 create_env([func(Name, Params, RetType, Body)|Rest], env(Scopes, Status, Funcs), env(Scopes, Status, NewFuncs)) :-
     % Check function name not already declared
     (member(func(Name, _, _, _), Funcs); member(proc(Name, _, _), Funcs)) ->
-        throw(redeclare_identifier(func(Name)))
+        throw(redeclare_function(Name))
     ;
 
         % Create temp environment with parameters as innermost scope, preserving globals
@@ -57,7 +57,7 @@ create_env([func(Name, Params, RetType, Body)|Rest], env(Scopes, Status, Funcs),
 create_env([proc(Name, Params, Body)|Rest], env(Scopes, Status, Funcs), env(Scopes, Status, NewFuncs)) :-
     % Check procedure name not already declared
     (member(func(Name, _, _, _), Funcs); member(proc(Name, _, _), Funcs)) ->
-        throw(redeclare_identifier(proc(Name)))
+        throw(redeclare_procedure(Name))
     ;
         % Create temp environment with parameters as innermost scope, preserving globals
         create_env(Params, env([[]|Scopes],Status,Funcs), _),
@@ -118,6 +118,7 @@ check_type(Value, integer) :- integer(Value), !.
 check_type(Value, float) :- float(Value), !.
 check_type(Value, string) :- string(Value), !.
 check_type(Value, boolean) :- boolean(Value), !.
+check_type(undefined, _) :- true, !.
 check_type(_, _) :- fail.
 % update env
 % Case 1: Variable found in the current scope
@@ -369,14 +370,15 @@ reduce(config(eql(E1, E2), Env), _) :-
 
 % Function call expression - evaluate function and get return value
 reduce(config(call(Name, Args), Env), config(ReturnValue, Env)) :-
+    Env = env(Scopes, Status, Funcs),
     % Check if function exists and handle appropriately
     (member(func(Name, Params, RetType, Body), Funcs) -> 
         % User-defined function
-        handle_user_function(Name, Args, Params, RetType, Body, Env, ReturnValue)
+        handle_user_function(Name, Args, Params, RetType, Body, env(Scopes, Status, Funcs), ReturnValue)
     ;
         % Try built-in function
         (is_builtin(Name, func) -> 
-            handle_builtin_function(Name, Args, Env, ReturnValue)
+            handle_builtin_function(Name, Args, env(Scopes, Status, Funcs), ReturnValue)
         ;
             % Neither user-defined nor built-in
             throw(undeclare_function(Name))
@@ -395,13 +397,16 @@ handle_user_function(Name, Args, Params, RetType, Body, Env, ReturnValue) :-
     evaluate_args_with_originals(Args, Env, ArgValues, _),
     
     % Create new environment with parameters as innermost scope
-    create_function_env(ArgValues, Params, Funcs, FuncEnv),
-    
+    create_function_env(ArgValues, Params, env(Scopes, Status, Funcs), env(NewScopes, NewStatus, NewFuncs)),
+    NewScopes = [L1|L2],
+    FuncEnv = env([[id(Name, var, RetType, undefined)|L1]|L2], NewStatus, NewFuncs), 
+
     % Execute function body
     reduce_stmt(config(Body, FuncEnv), config(_, ResultEnv)),
     
     % Extract the return value - function name is used as the return variable
     check_declared(Name, ResultEnv, id(Name, _, RetType, ReturnValue)),
+    
     % Verify return value matches declared return type
     check_type(ReturnValue, RetType).
 
@@ -428,21 +433,20 @@ execute_builtin_func(readBool, [], _, Value) :-
 
 reduce_all(config(V, Env), config(V, Env)) :- 
     boolean(V), !. % Giá trị boolean
-reduce_all(config(V, Env), config(Value, Env)) :- 
-    atom(V), 
-    check_declared(V, Env, id(V, _, _, Value)),
-    ( Value \= undefined -> true
-        ; throw(undefined_variable(V))
-        ), !. % Giá trị hằng
 reduce_all(config(V, Env), config(V, Env)) :- 
     integer(V), !.
 reduce_all(config(V, Env), config(V, Env)) :- 
     float(V), !.
 reduce_all(config(V, Env), config(V, Env)) :- 
     string(V), !.
+reduce_all(config(V, Env), config(V, Env)) :-
+    V = undefined, !.
 reduce_all(config(E, Env), config(E2, Env)) :-
     reduce(config(E, Env), config(E1, Env)), !,
     reduce_all(config(E1, Env), config(E2, Env)).
+reduce_all(config(V, Env), config(Value, Env)) :- 
+    atom(V), 
+    check_declared(V, Env, id(V, _, _, Value)), !. % Giá trị hằng
 reduce_all(config(V, _), _) :-
 	atom(V),
 	throw(undeclare_identifier(V)).
@@ -450,11 +454,25 @@ reduce_all(config(V, _), _) :-
 reduce_stmt(config([], Env), config(end,Env)) :- true.
 
 
-reduce_stmt(config([assign(I, E1)|Rest], Env),config(Status,Env2)) :-
-	reduce_all(config(E1, Env), config(Rhs, Env)),
-	update_env(I, Rhs, Env, NewEnv),
-	reduce_stmt(config(Rest, NewEnv), config(NewStatus, Env2)),
-    determine_status(NewStatus, assign(I,E1), Status).
+% Assignment statement - check for constants and undefined values
+reduce_stmt(config([assign(I, E1)|Rest], Env), config(Status,Env2)) :-
+    % First check if trying to assign to a constant
+    check_declared(I, Env, id(I, Kind, _, _)),
+    (Kind = const -> 
+        throw(cannot_assign(I))  % Cannot assign to constants
+    ;
+        % Normal assignment for variables
+        reduce_all(config(E1, Env), config(Rhs, Env)),
+        
+        % Check if Rhs is undefined
+        (Rhs = undefined -> 
+            throw(invalid_expression(E1))
+        ;
+            update_env(I, Rhs, Env, NewEnv),
+            reduce_stmt(config(Rest, NewEnv), config(NewStatus, Env2)),
+            determine_status(NewStatus, assign(I,E1), Status)
+        )
+    ).
 
 reduce_stmt(config([block(L1, L2)|Rest], Env), config(Status, Env2)) :-
     (   L1 = [] ->
@@ -583,7 +601,7 @@ reduce_stmt(config([call(Name, Args)|Rest], env(Scopes, Status, Funcs)), config(
         
         % Create new environment with parameters as innermost scope
         % Preserves function list but creates new parameter scope
-        create_function_env(ArgValues, Params, Funcs, ProcEnv),
+        create_function_env(ArgValues, Params, env(Scopes, Status, Funcs), ProcEnv),
  
         % Execute procedure body
         reduce_stmt(config(Body, ProcEnv), config(_, _)),
@@ -592,18 +610,18 @@ reduce_stmt(config([call(Name, Args)|Rest], env(Scopes, Status, Funcs)), config(
         reduce_stmt(config(Rest, env(Scopes, Status, Funcs)), config(NewStatus, Env2)),
         determine_status(NewStatus, call(Name, Args), OutStatus)
     % Neither built-in nor user-defined
-    ; throw(undeclared_procedure(Name))
+    ; throw(undeclare_procedure(Name))
     ).
 
-% create_function_env(+ArgValues, +Params, +Funcs, -ProcEnv)
-% Creates environment for procedure/function execution with parameters
-create_function_env(ArgValues, Params, Funcs, env([ParamScope], false, Funcs)) :-
+% create_function_env(+ArgValues, +Params, +Env, -ProcEnv)
+% Creates environment with parameters in innermost scope, preserving outer scopes
+create_function_env(ArgValues, Params, env(Scopes, _, Funcs), env([ParamScope|Scopes], false, Funcs)) :-
     % Create parameter scope by binding parameter names to argument values
     create_param_bindings(ArgValues, Params, ParamScope).
 
 % Helper to create parameter bindings
 create_param_bindings([], [], []).
-create_param_bindings([Value|Values], [par(Name, Type)|Params], [id(Name, par, Type, Value)|Bindings]) :-
+create_param_bindings([Value|Values], [par(Name, Type)|Params], [id(Name, var, Type, Value)|Bindings]) :-
     create_param_bindings(Values, Params, Bindings).
 
 % Helper to evaluate args while keeping originals
@@ -619,52 +637,44 @@ execute_builtin_proc(Name, ArgValues, OrigArgs, Env, NewEnv) :-
 % Individual procedure implementations with originals
 execute_proc(writeInt, [Value], [OrigExpr], Env, Env) :-
     (check_type(Value, integer); throw(type_mismatch(call(writeInt,[OrigExpr])))),!,
+    (Value = undefined -> throw(invalid_expression(OrigExpr)); true),
     write(Value).
 
 execute_proc(writeIntLn, [Value], [OrigExpr], Env, Env) :-
     (check_type(Value, integer); throw(type_mismatch(call(writeIntLn,[OrigExpr])))),!,
+    (Value = undefined -> throw(invalid_expression(OrigExpr)); true),
     writeln(Value).
 
 % These procedures need the original expressions for error messages
 execute_proc(writeReal, [Value], [OrigExpr], Env, Env) :-
     (check_type(Value, float); throw(type_mismatch(call(writeReal,[OrigExpr])))),!,
+    (Value = undefined -> throw(invalid_expression(OrigExpr)); true),
     write(Value).
 
 execute_proc(writeRealLn, [Value], [OrigExpr], Env, Env) :-
     (check_type(Value, float); throw(type_mismatch(call(writeRealLn,[OrigExpr])))),!,
+    (Value = undefined -> throw(invalid_expression(OrigExpr)); true),
     writeln(Value).
 
 execute_proc(writeBool, [Value], [OrigExpr], Env, Env) :-
     (check_type(Value, boolean); throw(type_mismatch(call(writeBool,[OrigExpr])))),!,
+    (Value = undefined -> throw(invalid_expression(OrigExpr)); true),
     write(Value).
 
 execute_proc(writeBoolLn, [Value], [OrigExpr], Env, Env) :-
     (check_type(Value, boolean); throw(type_mismatch(call(writeBoolLn,[OrigExpr])))),!,
+    (Value = undefined -> throw(invalid_expression(OrigExpr)); true),
     writeln(Value).
 
 execute_proc(writeStr, [Value], [OrigExpr], Env, Env) :-
     (check_type(Value, string); throw(type_mismatch(call(writeStr,[OrigExpr])))),!,
+    (Value = undefined -> throw(invalid_expression(OrigExpr)); true),
     write(Value).
 
 execute_proc(writeStrLn, [Value], [OrigExpr], Env, Env) :-
     (check_type(Value, string); throw(type_mismatch(call(writeStrLn,[OrigExpr])))),!,
+    (Value = undefined -> throw(invalid_expression(OrigExpr)); true),
     writeln(Value).
-
-% For read procedures, variable names are already correct in error messages
-execute_proc(readInt, [Var], [_], Env, NewEnv) :-
-    read(Value),
-    (check_type(Value, integer); throw(type_mismatch(call(readInt,[Var])))),!,
-    update_env(Var, Value, Env, NewEnv).
-
-execute_proc(readReal, [Var], [_], Env, NewEnv) :-
-    read(Value),
-    (check_type(Value, float); throw(type_mismatch(call(readReal,[Var])))),!,
-    update_env(Var, Value, Env, NewEnv).
-
-execute_proc(readBool, [Var], [_], Env, NewEnv) :-
-    read(Value),
-    (check_type(Value, boolean); throw(type_mismatch(call(readBool,[Var])))),!,
-    update_env(Var, Value, Env, NewEnv).
 
 % Helper predicate for loop with break/continue
 reduce_loop_with_ctrl(0, _, Env, Env) :- !.
