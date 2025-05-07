@@ -144,10 +144,13 @@ replace_var([H|T], id(Var, Kind, Type, Value), [H|NewT]) :- replace_var(T, id(Va
 reduce(config(sub(E1), Env), config(R,Env)) :-  
 		reduce_all(config(E1,Env),config(V1,Env)),
 		R is -V1.	
-reduce(config(add(E1,E2),Env),config(R,Env)) :-  
-		reduce_all(config(E1,Env),config(V1,Env)),
-		reduce_all(config(E2,Env),config(V2,Env)),
-		R is V1+V2.
+reduce(config(add(E1,E2),Env),config(R,Env)) :-
+    reduce_all(config(E1,Env),config(V1,Env)),
+    reduce_all(config(E2,Env),config(V2,Env)),
+    check_type(V1, T1),
+    check_type(V2, T2),
+    (T1 != T2 -> throw(type_mismatch(add(E1,E2))) ; true),
+    R is V1+V2.
 reduce(config(sub(E1,E2),Env),config(R,Env)) :-  
 		reduce_all(config(E1,Env),config(V1,Env)),
 		reduce_all(config(E2,Env),config(V2,Env)),
@@ -457,7 +460,7 @@ reduce_stmt(config([], Env), config(end,Env)) :- true.
 % Assignment statement - check for constants and undefined values
 reduce_stmt(config([assign(I, E1)|Rest], Env), config(Status,Env2)) :-
     % First check if trying to assign to a constant
-    check_declared(I, Env, id(I, Kind, _, _)),
+    check_declared(I, Env, id(I, Kind, Type, _)),
     (Kind = const -> 
         throw(cannot_assign(I))  % Cannot assign to constants
     ;
@@ -468,6 +471,12 @@ reduce_stmt(config([assign(I, E1)|Rest], Env), config(Status,Env2)) :-
         (Rhs = undefined -> 
             throw(invalid_expression(E1))
         ;
+            % Check type compatibility
+            (   check_type(Rhs, Type) -> 
+            true  % Type matches
+            ;   
+            throw(type_mismatch(assign(I, E1)))  % Type mismatch
+            ),
             update_env(I, Rhs, Env, NewEnv),
             reduce_stmt(config(Rest, NewEnv), config(NewStatus, Env2)),
             determine_status(NewStatus, assign(I,E1), Status)
@@ -571,9 +580,9 @@ reduce_stmt(config([loop(E, S)|Rest], Env), config(loop(E,S),Env2)) :-
 
 % Handle break/continue with exception if not in loop
 reduce_stmt(config([break(null)|_], env(_, false,_)), _) :-
-    throw(break_not_in_loop(null)).
+    throw(break_not_in_loop(break(null))).
 reduce_stmt(config([continue(null)|_], env(_, false,_)), _) :-
-    throw(continue_not_in_loop(null)).
+    throw(continue_not_in_loop(continue(null))).
 
 reduce_stmt(config([break(null)|_], env(Scopes, true, Funcs)), config(break(null), env(Scopes, true, Funcs))) :- !.
 reduce_stmt(config([continue(null)|_], env(Scopes, true, Funcs)), config(continue(null), env(Scopes, true, Funcs))) :- !.

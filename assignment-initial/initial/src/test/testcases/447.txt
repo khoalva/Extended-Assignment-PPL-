@@ -1,0 +1,1 @@
+[[var(a,float)],[],[assign(a,1),call(writeInt,[a])]].
