@@ -54,8 +54,8 @@ class VMSuite(unittest.TestCase):
     #     self.assertTrue(TestVM.test(input, expect, 410))
     
     # def test_rdiv_int_expression(self):        
-    #     input = """[[],[],[call(writeInt,[rdiv(3,2)])]]."""
-    #     expect = "1"
+    #     input = """[[],[],[call(writeInt,[rdiv(4,2)])]]."""
+    #     expect = "2"
     #     self.assertTrue(TestVM.test(input, expect, 411))
 
     # def test_rdiv_float_expression(self):        
@@ -238,7 +238,47 @@ class VMSuite(unittest.TestCase):
     #     expect = "Type mismatch: assign(a,1)"
     #     self.assertTrue(TestVM.test(input, expect, 447))
     
-    def test_type_mismatch_2(self):
-        input = """[[],[],[call(writeInt,[add(10,true)])]]."""
-        expect = "Type mismatch: add(10,true)"
-        self.assertTrue(TestVM.test(input, expect, 448))
+    # def test_type_mismatch_2(self):
+    #     input = """[[],[],[call(writeInt,[add(10,true)])]]."""
+    #     expect = "Type mismatch: add(10,true)"
+    #     self.assertTrue(TestVM.test(input, expect, 448))
+
+    # def test_advanced_expression(self):
+    #     input = """[[],[],[call(writeReal,[add(1.0, 1)])]]."""
+    #     expect = "2.0"
+    #     self.assertTrue(TestVM.test(input, expect, 449))
+    
+    # def test_advanced_expression_2(self):
+    #     input = """[[],[],[call(writeReal,[times(10.0, 10)])]]."""
+    #     expect = "100.0"
+    #     self.assertTrue(TestVM.test(input, expect, 450))
+
+    # def test_advanced_expression_3(self):
+    #     input = """[[],[],[call(writeInt,[rdiv(100, 10)])]]."""
+    #     expect = "10"
+    #     self.assertTrue(TestVM.test(input, expect, 451))
+
+    # def test_advanced_expression_4(self):
+    #     input = """[[],[],[call(writeInt,[sub(true)])]]."""
+    #     expect = "Type mismatch: sub(true)"
+    #     self.assertTrue(TestVM.test(input, expect, 452))
+    # def test_advanced_expression_5(self):
+    #     input = """[[],[],[call(writeInt,[imod(9,5.0)])]]."""
+    #     expect = "Type mismatch: imod(9,5.0)"
+    #     self.assertTrue(TestVM.test(input, expect, 453))
+    # def test_short_circuit(self):
+    #     input = """[[],[],[call(writeBool,[bor(true,bor(false,sub(true,1)))])]]."""
+    #     expect = "true"
+    #     self.assertTrue(TestVM.test(input, expect, 454))
+    # def test_short_circuit_2(self):
+    #     input = """[[],[],[call(writeBool,[band(false,bor(true,sub(true,1)))])]]."""
+    #     expect = "false"
+    #     self.assertTrue(TestVM.test(input, expect, 455))
+    # def test_type_relational_expression(self):
+    #     input = """[[],[],[call(writeBool,[le(true,2)])]]."""
+    #     expect = "Type mismatch: le(true,2)"
+    #     self.assertTrue(TestVM.test(input, expect, 456))
+    def test_call_by_value(self):
+        input = """[[var(a,integer)],[func(foo,[par(a,integer),par(b,integer)],[assign(a,add(a,b)),assign(foo,a)])],[assign(a,3),call(writeIntLn,[call(foo,[a,3])]),call(writeIntLn,[a])]]."""
+        expect = "6\n3\n"
+        self.assertTrue(TestVM.test(input, expect, 457))

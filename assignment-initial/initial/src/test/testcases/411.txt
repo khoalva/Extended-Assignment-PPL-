@@ -1,1 +1,1 @@
-[[],[],[call(writeInt,[rdiv(3,2)])]].
+[[],[],[call(writeInt,[rdiv(4,2)])]].

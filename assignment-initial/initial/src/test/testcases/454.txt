@@ -1,0 +1,1 @@
+[[],[],[call(writeBool,[bor(true,bor(false,sub(true,1)))])]].

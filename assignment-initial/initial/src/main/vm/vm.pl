@@ -143,22 +143,80 @@ replace_var([H|T], id(Var, Kind, Type, Value), [H|NewT]) :- replace_var(T, id(Va
 
 reduce(config(sub(E1), Env), config(R,Env)) :-  
 		reduce_all(config(E1,Env),config(V1,Env)),
-		R is -V1.	
+        check_type(V1, T1),
+        (   (T1 \= integer, T1 \= float) ->
+        throw(type_mismatch(sub(E1)))
+        ;   true
+        ),
+		R is -V1.
+	
 reduce(config(add(E1,E2),Env),config(R,Env)) :-
     reduce_all(config(E1,Env),config(V1,Env)),
     reduce_all(config(E2,Env),config(V2,Env)),
     check_type(V1, T1),
     check_type(V2, T2),
-    (T1 != T2 -> throw(type_mismatch(add(E1,E2))) ; true),
-    R is V1+V2.
-reduce(config(sub(E1,E2),Env),config(R,Env)) :-  
-		reduce_all(config(E1,Env),config(V1,Env)),
-		reduce_all(config(E2,Env),config(V2,Env)),
-		R is V1-V2.
-reduce(config(times(E1,E2),Env),config(R,Env)) :-  
-		reduce_all(config(E1,Env),config(V1,Env)),
-		reduce_all(config(E2,Env),config(V2,Env)),
-		R is V1*V2.
+    % Kiểm tra cả hai toán hạng phải là integer hoặc float
+    (   (T1 \= integer, T1 \= float, T2 \= integer, T2 \= float) ->
+        throw(type_mismatch(add(E1,E2)))
+    ;   true
+    ),
+
+    % Kiểm tra kiểu không khớp (cho phép integer và float kết hợp)
+    (   T1 \= T2,
+        (T1 = integer, T2 = float ; T1 = float, T2 = integer) -> true
+    ;   T1 \= T2 -> throw(type_mismatch(add(E1,E2)))
+    ;   true
+    ),
+
+    % Tính R và quyết định kiểu của R
+    (   (T1 = float ; T2 = float) ->
+        R is float(V1 + V2)  % Trả về float nếu có ít nhất một float
+    ;   R is V1 + V2        % Trả về integer nếu cả hai là integer
+    ).
+
+
+reduce(config(sub(E1,E2),Env),config(R,Env)) :-
+    reduce_all(config(E1,Env),config(V1,Env)),
+    reduce_all(config(E2,Env),config(V2,Env)),
+    check_type(V1, T1),
+    check_type(V2, T2),
+    % Kiểm tra cả hai toán hạng phải là integer hoặc float
+    (   (T1 \= integer, T1 \= float, T2 \= integer, T2 \= float) ->
+        throw(type_mismatch(sub(E1,E2)))
+    ;   true
+    ),
+    % Kiểm tra kiểu không khớp (cho phép integer và float kết hợp)
+    (   T1 \= T2,
+        (T1 = integer, T2 = float ; T1 = float, T2 = integer) -> true
+    ;   T1 \= T2 -> throw(type_mismatch(sub(E1,E2)))
+    ;   true
+    ),
+    % Tính R và quyết định kiểu của R
+    (   (T1 = float ; T2 = float) ->
+        R is float(V1 - V2)  % Trả về float nếu có ít nhất một float
+    ;   R is V1 - V2        % Trả về integer nếu cả hai là integer
+    ).
+reduce(config(times(E1,E2),Env),config(R,Env)) :-
+    reduce_all(config(E1,Env),config(V1,Env)),
+    reduce_all(config(E2,Env),config(V2,Env)),
+    check_type(V1, T1),
+    check_type(V2, T2),
+    % Kiểm tra cả hai toán hạng phải là integer hoặc float
+    (   (T1 \= integer, T1 \= float, T2 \= integer, T2 \= float) ->
+        throw(type_mismatch(times(E1,E2)))
+    ;   true
+    ),
+    % Kiểm tra kiểu không khớp (cho phép integer và float kết hợp)
+    (   T1 \= T2,
+        (T1 = integer, T2 = float ; T1 = float, T2 = integer) -> true
+    ;   T1 \= T2 -> throw(type_mismatch(times(E1,E2)))
+    ;   true
+    ),
+    % Tính R và quyết định kiểu của R
+    (   (T1 = float ; T2 = float) ->
+        R is float(V1 * V2)  % Trả về float nếu có ít nhất một float
+    ;   R is V1 * V2        % Trả về integer nếu cả hai là integer
+    ).
 % reduce for rdiv(E1, E2)
 reduce(config(rdiv(E1, E2), Env), config(R, Env)) :- 
 
@@ -168,24 +226,25 @@ reduce(config(rdiv(E1, E2), Env), config(R, Env)) :-
     V2 \= 0, !,
     
     % Kiểm tra kiểu của V1, V2
-    ( check_type(V1, float);   check_type(V1, integer) ),
-    ( check_type(V2, float);   check_type(V2, integer) ),
-    % Xác định kiểu kết quả
-    (   ( check_type(V1, float); check_type(V2, float) )
-     ->  R is float(V1) / V2  % Kết quả là float nếu có ít nhất một float
-    ; R is V1 // V2        % Kết quả là int nếu cả hai là int
-    ).
-% reduce(config(rdiv(_, E2), Env), _) :- 
-%     reduce_all(config(E2, Env), config(V2, Env)),
-%     V2 = 0, !,
-%     throw(division_by_zero).
-reduce(config(rdiv(E1, E2), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
-    (   \+ (check_type(V1, float); check_type(V1, integer))
-    ;   \+ (check_type(V2, float); check_type(V2, integer))
+    check_type(V1, T1),
+    check_type(V2, T2),
+    % Kiểm tra cả hai toán hạng phải là integer hoặc float
+    (   (T1 \= integer, T1 \= float, T2 \= integer, T2 \= float) ->
+        throw(type_mismatch(rdiv(E1,E2)))
+    ;   true
     ),
-    throw(type_mismatch(rdiv(E1, E2))).
+    % Kiểm tra kiểu không khớp (cho phép integer và float kết hợp)
+    (   T1 \= T2,
+        (T1 = integer, T2 = float ; T1 = float, T2 = integer) -> true
+    ;   T1 \= T2 -> throw(type_mismatch(rdiv(E1,E2)))
+    ;   true
+    ),
+    % Tính R và quyết định kiểu của R
+    (   (T1 = float ; T2 = float) ->
+        R is float(V1 / V2)  % Trả về float nếu có ít nhất một float
+    ;   R is V1 / V2        % Trả về integer nếu cả hai là integer
+    ).
+
 
 % reduce for idiv(E1, E2)
 reduce(config(idiv(E1, E2), Env), config(R, Env)) :- 
@@ -194,45 +253,37 @@ reduce(config(idiv(E1, E2), Env), config(R, Env)) :-
     % Kiểm tra E2 \= 0
     V2 \= 0, !,
     % Kiểm tra kiểu của V1, V2
-    check_type(V1, integer),
-    check_type(V2, integer),
+    check_type(V1, T1),
+    check_type(V2, T2),
+
+    % Kiểm tra cả hai toán hạng phải là integer
+    (   (T1 \= integer; T2 \= integer) ->
+        throw(type_mismatch(idiv(E1,E2)))
+    ;   true
+    ),
     % Tính kết quả
     R is V1 // V2.  % Phép chia lấy nguyên
 
-% reduce(config(idiv(_, E2), Env), _) :- 
-%     reduce_all(config(E2, Env), config(V2, Env)),
-%     V2 = 0, !,
-%     throw(division_by_zero).
-reduce(config(idiv(E1, E2), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
-    (   \+ check_type(V1, integer)
-    ;   \+ check_type(V2, integer)
-    ),
-    throw(type_mismatch(idiv(E1, E2))).
 
 % reduce for imod(E1, E2)
 reduce(config(imod(E1, E2), Env), config(R, Env)) :- 
+
     reduce_all(config(E1, Env), config(V1, Env)),
     reduce_all(config(E2, Env), config(V2, Env)),
     % Kiểm tra E2 \= 0
     V2 \= 0, !,
     % Kiểm tra kiểu của V1, V2
-    check_type(V1, integer),
-    check_type(V2, integer),
+    check_type(V1, T1),
+    check_type(V2, T2),
+
+    % Kiểm tra cả hai toán hạng phải là integer
+    (   (T1 \= integer; T2 \= integer) ->
+        throw(type_mismatch(imod(E1,E2)))
+    ;   true
+    ),
     % Tính kết quả
     R is V1 mod V2.  % Phép chia lấy dư
-% reduce(config(imod(_, E2), Env), _) :- 
-%     reduce_all(config(E2, Env), config(V2, Env)),
-%     V2 = 0, !,
-%     throw(division_by_zero).
-reduce(config(imod(E1, E2), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
-    (   \+ check_type(V1, integer)
-    ;   \+ check_type(V2, integer)
-    ),
-    throw(type_mismatch(imod(E1, E2))).
+
 % reduce for bnot(E1)
 reduce(config(bnot(E1), Env), config(R, Env)) :- 
     reduce_all(config(E1, Env), config(V1, Env)),
