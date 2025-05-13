@@ -1,0 +1,15 @@
+[
+            [const(x,5),var(y,integer)],
+            [],
+            [
+                assign(y,3),
+                block(
+                    [const(x,2),var(z,integer)],
+                    [
+                        assign(z,times(x,y)),
+                        call(writeInt,[z])
+                    ]
+                ),
+                call(writeInt,[x])
+            ]
+        ].

@@ -1,0 +1,1 @@
+[[var(x,integer),var(y,integer),var(z,integer)],[],[assign(x,1),assign(y,1),assign(z,1),loop(3,block([], [assign(x,times(x,2)),assign(y,add(y,3)),assign(z,sub(z,1))])),call(writeInt,[x]),call(writeInt,[y]),call(writeInt,[z])]].

@@ -1,0 +1,1 @@
+[[],[],[call(writeInt,[imod(add(20,5),times(3,7))])]].

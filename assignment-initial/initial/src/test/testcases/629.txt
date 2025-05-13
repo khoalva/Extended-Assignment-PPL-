@@ -1,0 +1,1 @@
+[[var(x,integer)],[proc(a,[],[block([var(y,integer)],[assign(y,5),assign(x,y)])])],[assign(x,1),call(a,[]),if(eq(x,5),call(writeInt,[x]),call(writeInt,[0]))]].

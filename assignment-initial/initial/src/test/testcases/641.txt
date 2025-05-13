@@ -1,0 +1,1 @@
+[[var(i,integer),var(cnt,integer)],[],[assign(i,1),assign(cnt,0),do([assign(cnt,add(cnt,1)),assign(i,add(i,1)),if(greater(i,3),break(null))],true),call(writeInt,[cnt])]].

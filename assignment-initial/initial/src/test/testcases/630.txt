@@ -1,0 +1,1 @@
+[[var(a,integer),var(b,integer),var(c,integer)],[],[assign(a,1),assign(b,2),assign(c,3),if(eq(a,1),block([], [if(eq(b,2),block([], [call(writeInt,[a]),call(writeInt,[b])]),call(writeInt,[0]))]),call(writeInt,[0])),call(writeInt,[c])]].

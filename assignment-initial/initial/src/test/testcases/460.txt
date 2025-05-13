@@ -1,0 +1,12 @@
+[[var(x, integer), var(y, integer)],
+                    [func(max, [par(a, integer), par(b, integer)], integer, [
+                            if(ge(a, b), assign(max, a), assign(max, b))
+                        ])
+                    ],
+                    [
+                        assign(y, 4),
+                        assign(x, add(y, 1)),
+                        assign(y, call(max, [x, y])),
+                        call(writeInt, [y])
+                    ]].
+                

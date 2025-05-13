@@ -1,0 +1,1 @@
+[[var(i,integer),var(j,integer),var(cnt,integer)],[],[assign(i,0),assign(cnt,0),loop(2,do([assign(j,add(i,1)),assign(cnt,add(cnt,j)),assign(i,add(i,1))],less(i,3))),call(writeInt,[cnt])]].

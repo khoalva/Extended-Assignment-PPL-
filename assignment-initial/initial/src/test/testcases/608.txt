@@ -1,0 +1,1 @@
+[[],[],[call(writeBool,[less(add(1,2),times(1,add(1,1)))])]].

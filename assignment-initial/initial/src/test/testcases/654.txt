@@ -1,0 +1,12 @@
+[
+            [var(cnt,integer)],
+            [],
+            [
+                assign(cnt,0),
+                loop(5,block([],[
+                    if(eq(imod(cnt,2),0),call(writeInt,[cnt])),
+                    assign(cnt,add(cnt,1))
+                ])),
+                call(writeInt,[cnt])
+            ]
+        ].

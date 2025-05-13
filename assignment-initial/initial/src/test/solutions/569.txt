@@ -1,0 +1,1 @@
+Wrong number of arguments: call(pow2,[3,4,5])

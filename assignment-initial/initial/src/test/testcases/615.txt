@@ -1,0 +1,1 @@
+[[var(sum,integer)],[proc(init,[],[assign(sum,0)]),proc(addN,[par(n,integer)],[assign(sum,add(sum,n))])],[call(init,[]),loop(3,call(addN,[2])),call(writeInt,[sum])]].

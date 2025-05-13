@@ -1,0 +1,1 @@
+[[],[func(inv,[par(f,float)],float,[assign(inv,rdiv(1.0,f))])],[call(writeReal,[call(inv,[2.0])])]].

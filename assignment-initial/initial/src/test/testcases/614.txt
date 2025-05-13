@@ -1,0 +1,13 @@
+[
+            [var(a,integer),const(c,10)],
+            [],
+            [   
+                assign(a,10),
+                block(
+                    [var(a,integer)],
+                    [assign(a,20),call(writeInt,[a])]
+                ),
+                call(writeInt,[a]),
+                call(writeInt,[c])
+            ]
+        ].

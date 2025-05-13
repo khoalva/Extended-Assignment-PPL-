@@ -1,1 +1,1 @@
-Cannot assign to a constant: a
+Cannot assign to a constant: assign(a,1)

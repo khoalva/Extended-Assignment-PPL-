@@ -1,0 +1,1 @@
+[[var(a,boolean)],[proc(p,[],[assign(a,true)])],[assign(a,false),if(bnot(a),call(p,[]),call(writeInt,[false])),call(writeBool,[a])]].

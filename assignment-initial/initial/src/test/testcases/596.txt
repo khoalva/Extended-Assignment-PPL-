@@ -1,0 +1,1 @@
+[[const(s,"Hi"),var(i,integer)],[],[assign(i,1),while(less(i,3),block([], [call(writeStr,[s]),assign(i,add(i,1))])),call(writeLn,[])]].

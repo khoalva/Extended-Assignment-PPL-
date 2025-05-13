@@ -1,0 +1,1 @@
+[[var(i,integer),var(evens,integer)],[],[assign(i,0),assign(evens,0),do([assign(i,add(i,1)),if(ne(imod(i,2),0),continue(null)),assign(evens,add(evens,1))],less(i,5)),call(writeInt,[evens])]].

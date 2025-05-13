@@ -1,0 +1,1 @@
+[[],[],[call(writeBool,[eq(add(7,2),add(7,2))])]].

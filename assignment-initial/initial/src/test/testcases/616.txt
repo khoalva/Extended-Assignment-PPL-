@@ -1,0 +1,1 @@
+[[var(f,float)],[proc(scale,[par(x,float)],[assign(f,times(x,1.5))])],[call(scale,[2.0]),call(writeReal,[f])]].

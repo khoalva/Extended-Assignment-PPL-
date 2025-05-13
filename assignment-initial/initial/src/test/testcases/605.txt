@@ -1,0 +1,1 @@
+[[],[],[call(writeBool,[greater(times(add(1,2),4),sub(20,3))])]].

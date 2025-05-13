@@ -1,0 +1,1 @@
+[[],[func(notf,[par(b,boolean)],boolean,[assign(notf,bnot(b))])],[call(writeBool,[call(notf,[false])])]].

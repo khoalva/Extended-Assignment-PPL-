@@ -1,0 +1,1 @@
+[[var(i,integer)],[proc(reset,[],[assign(i,0)])],[assign(i,5),loop(4,call(reset,[])),call(writeInt,[i])]].

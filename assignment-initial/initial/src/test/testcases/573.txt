@@ -1,0 +1,1 @@
+[[var(x,integer)],[],[block([var(x,integer)],[assign(x,2),block([var(y,integer)],[assign(y,add(x,3)),call(writeInt,[y])])])]].

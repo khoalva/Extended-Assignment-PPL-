@@ -1,0 +1,1 @@
+[[],[],[loop(3,block([], [call(writeInt,[1]),break(null)])),call(writeInt,[0])]].

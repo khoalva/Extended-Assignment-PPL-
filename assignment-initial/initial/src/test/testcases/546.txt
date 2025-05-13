@@ -1,0 +1,1 @@
+[[var(b1,boolean),var(b2,boolean)],[],[assign(b1,true),assign(b2,true),call(writeBool,[eq(b1,b2)])]].

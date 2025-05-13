@@ -1,0 +1,1 @@
+[[var(i,integer),var(sum,integer)],[],[assign(i,1),assign(sum,0),do([assign(sum,add(sum,i)),assign(i,add(i,1))],less(i,5)),call(writeInt,[sum])]].

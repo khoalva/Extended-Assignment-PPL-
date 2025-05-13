@@ -1,0 +1,12 @@
+[
+            [var(sum,integer),var(i,integer)],
+            [func(rs,[par(n,integer)],integer,[
+                assign(rs,0),
+                assign(i,1),
+                do(
+                    [assign(rs,add(rs,i)),assign(i,add(i,1))],
+                    less(i,add(n,1))
+                )
+            ])],
+            [call(writeInt,[call(rs,[4])])]
+        ].

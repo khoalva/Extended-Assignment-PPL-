@@ -1,0 +1,1 @@
+[[var(i,integer),var(prod,integer)],[proc(mul3,[],[assign(prod,times(prod,3))])],[assign(i,0),assign(prod,1),while(less(i,4),block([], [call(mul3,[]),assign(i,add(i,1))])),call(writeInt,[prod])]].

@@ -1,0 +1,1 @@
+[[var(a,integer)],[proc(seta,[par(v,integer)],[assign(a,v)])],[call(seta,[9]),call(writeInt,[a])]].

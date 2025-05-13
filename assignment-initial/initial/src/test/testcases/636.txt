@@ -1,0 +1,19 @@
+[
+            [var(i,integer),var(output,integer)],
+            [proc(ping,[],[assign(output,add(output,1))])],
+            [
+                assign(i,0),
+                assign(output,0),
+                while(less(i,3),
+                    block(
+                        [var(temp,integer)],
+                        [
+                            assign(temp,i),
+                            call(ping,[]),
+                            if(eq(temp,1),break(null)),
+                            assign(i,add(i,1))
+                        ]
+                    )
+                ),
+                call(writeInt,[output])
+            ]].

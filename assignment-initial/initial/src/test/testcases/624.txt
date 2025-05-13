@@ -1,0 +1,1 @@
+[[var(a,integer),var(b,integer)],[proc(p,[],[assign(a,add(a,1)),assign(b,add(b,2))])],[assign(a,5),assign(b,3),if(band(greater(a,b),less(a,10)),block([], [call(p,[]),call(writeInt,[a]),call(writeInt,[b])]),call(writeInt,[0]))]].

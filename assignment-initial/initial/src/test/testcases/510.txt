@@ -1,0 +1,1 @@
+[[],[],[call(writeBool,[bnot(true)])]].

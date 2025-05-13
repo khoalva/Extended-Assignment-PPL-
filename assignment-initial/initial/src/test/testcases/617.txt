@@ -1,0 +1,1 @@
+[[var(flag,boolean)],[proc(toggle,[],[assign(flag,bnot(flag))])],[assign(flag,false),call(toggle,[]),call(writeBool,[flag])]].

@@ -1,0 +1,1 @@
+[[],[func(double,[par(n,integer)],integer,[assign(double,times(n,2))])],[call(writeInt,[call(double,[add(2,3)])])]].

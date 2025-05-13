@@ -1,0 +1,1 @@
+[[],[func(foo,[par(n,integer)],integer,[assign(foo,times(n,n))])],[call(writeIntLn,[call(foo,[4])])]].

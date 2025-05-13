@@ -1,0 +1,1 @@
+[[var(a,integer),var(b,integer)],[proc(swap,[par(u,integer),par(v,integer)],[assign(a,v),assign(b,u)])],[assign(a,1),assign(b,2),call(swap,[a,b]),call(writeInt,[a]),call(writeInt,[b])]].

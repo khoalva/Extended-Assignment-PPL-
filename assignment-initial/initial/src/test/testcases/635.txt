@@ -1,0 +1,17 @@
+[
+            [var(a,integer),var(b,integer)],
+            [],
+            [
+                assign(a,3),
+                assign(b,4),
+                while(greater(a,0),
+                    block(
+                        [], 
+                        [
+                            assign(a,sub(a,1)),
+                            assign(b,add(b,2))
+                        ]
+                    )
+                ),
+                call(writeInt,[b])
+            ]].

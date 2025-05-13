@@ -1,1 +1,1 @@
-[[],[],[call(writeInt,[rdiv(101, 10)])]].
+[[],[],[call(writeInt,[rdiv(100, 10)])]].

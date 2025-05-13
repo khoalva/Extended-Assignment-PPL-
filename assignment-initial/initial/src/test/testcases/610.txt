@@ -1,0 +1,1 @@
+[[],[],[call(writeBool,[band(false,imod(5,2))])]].

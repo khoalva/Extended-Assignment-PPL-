@@ -1,0 +1,1 @@
+[[var(x,integer),const(y,5)],[proc(p,[],[assign(x,add(x,y))])],[assign(x,2),call(p,[]),call(writeInt,[x])]].

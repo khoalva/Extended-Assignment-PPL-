@@ -1,0 +1,16 @@
+[
+            [var(i,integer),var(cnt,integer)],
+            [],
+            [
+                assign(i,0),
+                assign(cnt,0),
+                while(less(i,5),block(
+                    [],
+                    [
+                        if(greater(i,2),break(null)),
+                        assign(cnt,add(cnt,1)),
+                        assign(i,add(i,1))
+                    ]
+                )),
+                call(writeInt,[cnt])
+            ]].

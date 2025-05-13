@@ -1,0 +1,1 @@
+[[var(x,integer)],[proc(incx,[],[assign(x,add(x,1))])],[assign(x,0),do([block([var(tmp,integer)],[assign(tmp,add(x,2)),assign(x,tmp)]),call(incx,[])],less(x,5)),call(writeInt,[x])]].

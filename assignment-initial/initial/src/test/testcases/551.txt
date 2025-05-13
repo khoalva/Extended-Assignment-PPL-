@@ -1,0 +1,1 @@
+[[const(a,2),const(b,3.5)],[func(cmp,[par(p,float),par(q,integer)],boolean,[assign(cmp,less(p,q))])],[call(writeBool,[call(cmp,[b,a])])]].

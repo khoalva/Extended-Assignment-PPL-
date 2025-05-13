@@ -1,0 +1,1 @@
+[[],[func(pow2,[par(x,integer)],integer,[assign(pow2,times(x,x))])],[call(writeInt,[call(pow2,[3,4,5])])]].

@@ -1,0 +1,1 @@
+[[],[],[call(writeBool,[bor(band(true,false),bnot(false))])]].

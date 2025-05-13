@@ -1,0 +1,1 @@
+[[],[func(foo,[par(x,integer),par(y,integer)],integer,[assign(foo,add(x,y))])],[call(writeInt,[call(foo,[3,4])])]].

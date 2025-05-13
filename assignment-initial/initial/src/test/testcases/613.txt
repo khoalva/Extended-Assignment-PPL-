@@ -1,0 +1,1 @@
+[[var(a,integer),var(b,integer)],[proc(check,[par(u,integer),par(v,integer)],[assign(a,u),assign(b,v)])],[call(check,[3,3]),call(writeBool,[eq(a,b)])]].

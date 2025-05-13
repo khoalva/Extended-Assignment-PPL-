@@ -1,3 +1,6 @@
+
+
+
 % 
 % @author: 2211605
 %
@@ -11,9 +14,10 @@ reduce_prog([Var,Func,Body]) :-
 		reduce_stmt(config(Body,Env2),_).
 											
 %check if X has been declared in the first list of the environment
+has_declared(_, [], _) :- fail.
 has_declared(X,[id(X,Y,Z,Value)|_],id(X,Y,Z,Value)) :- !.
 has_declared(X,[_|L],R) :-  has_declared(X,L,R).
-has_declared(_, [], _) :- fail.
+
 %check if X has been declared in the environment
 check_declared(X, env([], _, _), _) :- throw(undeclare_identifier(X)).
 check_declared(X, env([L|_], _, _), Y) :- has_declared(X,L,Y), !.
@@ -99,6 +103,7 @@ get_var_value(_, [], undefined).
 
 determine_status(break(null), _, break(null)) :- !.
 determine_status(continue(null), _, continue(null)) :- !.
+determine_status(end, _, end) :- !.
 determine_status(_, Default, Default).
 
 % handle_control(+Status1, +Rest, +Env1, -Status, -Env2)
@@ -123,7 +128,7 @@ check_type(_, _) :- fail.
 % update env
 % Case 1: Variable found in the current scope
 update_env(Var, Value, env([Scope|Rest], Status, Funcs), env([NewScope|Rest], Status, Funcs)) :-
-    has_declared(Var, Scope, id(Var, Kind, Type, _)), !, % Check if Var exists
+    has_declared(Var, Scope, id(Var, Kind, Type, _)),!, % Check if Var exists
     check_type(Value, Type), % Verify type compatibility
     replace_var(Scope, id(Var, Kind, Type, Value), NewScope). % Update value in scope
 
@@ -141,8 +146,8 @@ replace_var([id(Var, Kind, _, _)|T], id(Var, Kind, Type, Value), [id(Var, Kind, 
 replace_var([H|T], id(Var, Kind, Type, Value), [H|NewT]) :- replace_var(T, id(Var, Kind, Type, Value), NewT).
 
 
-reduce(config(sub(E1), Env), config(R,Env)) :-  
-		reduce_all(config(E1,Env),config(V1,Env)),
+reduce(config(sub(E1), Env), config(R,NewEnv)) :-  
+		reduce_all(config(E1,Env),config(V1,NewEnv)),
         check_type(V1, T1),
         (   (T1 \= integer, T1 \= float) ->
         throw(type_mismatch(sub(E1)))
@@ -150,9 +155,9 @@ reduce(config(sub(E1), Env), config(R,Env)) :-
         ),
 		R is -V1.
 	
-reduce(config(add(E1,E2),Env),config(R,Env)) :-
-    reduce_all(config(E1,Env),config(V1,Env)),
-    reduce_all(config(E2,Env),config(V2,Env)),
+reduce(config(add(E1,E2),Env),config(R,NewEnv)) :-
+    reduce_all(config(E1,Env),config(V1,Env1)),
+    reduce_all(config(E2,Env1),config(V2,NewEnv)),
     check_type(V1, T1),
     check_type(V2, T2),
     % Kiểm tra cả hai toán hạng phải là integer hoặc float
@@ -175,9 +180,9 @@ reduce(config(add(E1,E2),Env),config(R,Env)) :-
     ).
 
 
-reduce(config(sub(E1,E2),Env),config(R,Env)) :-
-    reduce_all(config(E1,Env),config(V1,Env)),
-    reduce_all(config(E2,Env),config(V2,Env)),
+reduce(config(sub(E1,E2),Env),config(R,NewEnv)) :-
+    reduce_all(config(E1,Env),config(V1,Env1)),
+    reduce_all(config(E2,Env1),config(V2,NewEnv)),
     check_type(V1, T1),
     check_type(V2, T2),
     % Kiểm tra cả hai toán hạng phải là integer hoặc float
@@ -196,9 +201,9 @@ reduce(config(sub(E1,E2),Env),config(R,Env)) :-
         R is float(V1 - V2)  % Trả về float nếu có ít nhất một float
     ;   R is V1 - V2        % Trả về integer nếu cả hai là integer
     ).
-reduce(config(times(E1,E2),Env),config(R,Env)) :-
-    reduce_all(config(E1,Env),config(V1,Env)),
-    reduce_all(config(E2,Env),config(V2,Env)),
+reduce(config(times(E1,E2),Env),config(R,NewEnv)) :-
+    reduce_all(config(E1,Env),config(V1,Env1)),
+    reduce_all(config(E2,Env1),config(V2,NewEnv)),
     check_type(V1, T1),
     check_type(V2, T2),
     % Kiểm tra cả hai toán hạng phải là integer hoặc float
@@ -218,10 +223,10 @@ reduce(config(times(E1,E2),Env),config(R,Env)) :-
     ;   R is V1 * V2        % Trả về integer nếu cả hai là integer
     ).
 % reduce for rdiv(E1, E2)
-reduce(config(rdiv(E1, E2), Env), config(R, Env)) :- 
+reduce(config(rdiv(E1, E2), Env), config(R, NewEnv)) :- 
 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, NewEnv)),
     % Kiểm tra E2 \= 0
     V2 \= 0, !,
     
@@ -247,9 +252,9 @@ reduce(config(rdiv(E1, E2), Env), config(R, Env)) :-
 
 
 % reduce for idiv(E1, E2)
-reduce(config(idiv(E1, E2), Env), config(R, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+reduce(config(idiv(E1, E2), Env), config(R, NewEnv)) :- 
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, NewEnv)),
     % Kiểm tra E2 \= 0
     V2 \= 0, !,
     % Kiểm tra kiểu của V1, V2
@@ -266,10 +271,10 @@ reduce(config(idiv(E1, E2), Env), config(R, Env)) :-
 
 
 % reduce for imod(E1, E2)
-reduce(config(imod(E1, E2), Env), config(R, Env)) :- 
+reduce(config(imod(E1, E2), Env), config(R, NewEnv)) :- 
 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, NewEnv)),
     % Kiểm tra E2 \= 0
     V2 \= 0, !,
     % Kiểm tra kiểu của V1, V2
@@ -285,189 +290,221 @@ reduce(config(imod(E1, E2), Env), config(R, Env)) :-
     R is V1 mod V2.  % Phép chia lấy dư
 
 % reduce for bnot(E1)
-reduce(config(bnot(E1), Env), config(R, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
+reduce(config(bnot(E1), Env), config(R, NewEnv)) :- 
+    reduce_all(config(E1, Env), config(V1, NewEnv)),
     check_type(V1, boolean),
     (V1 = true -> R = false; R = true),!.
 reduce(config(bnot(E1), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
+    reduce_all(config(E1, Env), config(V1, _)),
     \+ check_type(V1, boolean),
     throw(type_mismatch(bnot(E1))).
+reduce(config(band(E1, _), Env), config(false, NewEnv)) :- 
 
-% reduce for band(E1, E2) with short-circuit evaluation
-reduce(config(band(E1, _), Env), config(false, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
+    reduce_all(config(E1, Env), config(V1, TempEnv)),
+
     check_type(V1, boolean),
-    V1 = false, !.  % Nếu E1 = false, không đánh giá E2
-reduce(config(band(E1, E2), Env), config(R, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
+    V1 = false,
+    NewEnv = TempEnv, !.
+
+reduce(config(band(E1, E2), Env), config(R, NewEnv)) :- 
+
+    reduce_all(config(E1, Env), config(V1, Env1)),
+
     check_type(V1, boolean),
     V1 = true,
-    reduce_all(config(E2, Env), config(V2, Env)),
+    reduce_all(config(E2, Env1), config(V2, TempEnv)),
+
     check_type(V2, boolean),
-    (   V2 = true -> R = true ; R = false ).
+    (   V2 = true -> R = true ; R = false ),
+    NewEnv = TempEnv.
+
 reduce(config(band(E1, E2), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
+
+    reduce_all(config(E1, Env), config(V1, _)),
     \+ check_type(V1, boolean),
     throw(type_mismatch(band(E1, E2))).
 
 % reduce for bor(E1, E2) with short-circuit evaluation
-reduce(config(bor(E1, _), Env), config(true, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
+reduce(config(bor(E1, _), Env), config(true, NewEnv)) :- 
+    reduce_all(config(E1, Env), config(V1, NewEnv)),
     check_type(V1, boolean),
     V1 = true, !.  % Nếu E1 = true, không đánh giá E2
-reduce(config(bor(E1, E2), Env), config(R, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
+reduce(config(bor(E1, E2), Env), config(R, NewEnv)) :- 
+    reduce_all(config(E1, Env), config(V1, Env1)),
     check_type(V1, boolean),
     V1 = false,
-    reduce_all(config(E2, Env), config(V2, Env)),
+    reduce_all(config(E2, Env1), config(V2, NewEnv)),
     check_type(V2, boolean),
     (   V2 = true -> R = true ; R = false ).
 reduce(config(bor(E1, E2), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
+    reduce_all(config(E1, Env), config(V1, _)),
     \+ check_type(V1, boolean),
     throw(type_mismatch(bor(E1, E2))).
 
 % reduce for greater(E1, E2)
-reduce(config(greater(E1, E2), Env), config(R, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+reduce(config(greater(E1, E2), Env), config(R, NewEnv)) :- 
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, NewEnv)),
     (   check_type(V1, float); check_type(V1, integer) ),
     (   check_type(V2, float); check_type(V2, integer) ),
     (   V1 > V2 -> R = true ; R = false ).
 reduce(config(greater(E1, E2), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, _)),
     (   \+ (check_type(V1, float); check_type(V1, integer))
     ;   \+ (check_type(V2, float); check_type(V2, integer))
     ),
     throw(type_mismatch(greater(E1, E2))).
 
 % reduce for less(E1, E2)
-reduce(config(less(E1, E2), Env), config(R, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+reduce(config(less(E1, E2), Env), config(R, NewEnv)) :- 
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, NewEnv)),
     (   check_type(V1, float); check_type(V1, integer) ),
     (   check_type(V2, float); check_type(V2, integer) ),
     (   V1 < V2 -> R = true ; R = false ).
 reduce(config(less(E1, E2), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, _)),
     (   \+ (check_type(V1, float); check_type(V1, integer))
     ;   \+ (check_type(V2, float); check_type(V2, integer))
     ),
     throw(type_mismatch(less(E1, E2))).
 
 % reduce for ge(E1, E2) (greater or equal)
-reduce(config(ge(E1, E2), Env), config(R, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+reduce(config(ge(E1, E2), Env), config(R, NewEnv)) :- 
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, NewEnv)),
     (   check_type(V1, float); check_type(V1, integer) ),
     (   check_type(V2, float); check_type(V2, integer) ),
     (   V1 >= V2 -> R = true ; R = false ).
 reduce(config(ge(E1, E2), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, _)),
     (   \+ (check_type(V1, float); check_type(V1, integer))
     ;   \+ (check_type(V2, float); check_type(V2, integer))
     ),
     throw(type_mismatch(ge(E1, E2))).
 
 % reduce for le(E1, E2) (less or equal)
-reduce(config(le(E1, E2), Env), config(R, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+reduce(config(le(E1, E2), Env), config(R, NewEnv)) :- 
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, NewEnv)),
     (   check_type(V1, float); check_type(V1, integer) ),
     (   check_type(V2, float); check_type(V2, integer) ),
     (   V1 =< V2 -> R = true ; R = false ).
 reduce(config(le(E1, E2), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, _)),
     (   \+ (check_type(V1, float); check_type(V1, integer))
     ;   \+ (check_type(V2, float); check_type(V2, integer))
     ),
     throw(type_mismatch(le(E1, E2))).
 
 % reduce for ne(E1, E2) (not equal)
-reduce(config(ne(E1, E2), Env), config(R, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+reduce(config(ne(E1, E2), Env), config(R, NewEnv)) :- 
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, NewEnv)),
     % Kiểm tra cả hai cùng kiểu
     (   ( check_type(V1, integer), check_type(V2, integer) )
     ;   ( check_type(V1, boolean), check_type(V2, boolean) )
     ),
     (   V1 \= V2 -> R = true ; R = false ).
 reduce(config(ne(E1, E2), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, _)),
     \+ (   ( check_type(V1, integer), check_type(V2, integer) )
        ;   ( check_type(V1, boolean), check_type(V2, boolean) )
        ),
     throw(type_mismatch(ne(E1, E2))).
 
 % reduce for eql(E1, E2) (equal)
-reduce(config(eql(E1, E2), Env), config(R, Env)) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+reduce(config(eql(E1, E2), Env), config(R, NewEnv)) :- 
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, NewEnv)),
     % Kiểm tra cả hai cùng kiểu
     (   ( check_type(V1, integer), check_type(V2, integer) )
     ;   ( check_type(V1, boolean), check_type(V2, boolean) )
     ),
     (   V1 = V2 -> R = true ; R = false ).
 reduce(config(eql(E1, E2), Env), _) :- 
-    reduce_all(config(E1, Env), config(V1, Env)),
-    reduce_all(config(E2, Env), config(V2, Env)),
+    reduce_all(config(E1, Env), config(V1, Env1)),
+    reduce_all(config(E2, Env1), config(V2, _)),
     \+ (   ( check_type(V1, integer), check_type(V2, integer) )
        ;   ( check_type(V1, boolean), check_type(V2, boolean) )
        ),
     throw(type_mismatch(eql(E1, E2))).
 
 % Function call expression - evaluate function and get return value
-reduce(config(call(Name, Args), Env), config(ReturnValue, Env)) :-
+reduce(config(call(Name, Args), Env), config(ReturnValue, NewEnv)) :-
+
     Env = env(Scopes, Status, Funcs),
     % Check if function exists and handle appropriately
     (member(func(Name, Params, RetType, Body), Funcs) -> 
         % User-defined function
-        handle_user_function(Name, Args, Params, RetType, Body, env(Scopes, Status, Funcs), ReturnValue)
+        
+        handle_user_function(Name, Args, Params, RetType, Body, env(Scopes, Status, Funcs), ReturnValue,NewEnv)
+
     ;
         % Try built-in function
         (is_builtin(Name, func) -> 
-            handle_builtin_function(Name, Args, env(Scopes, Status, Funcs), ReturnValue)
+            handle_builtin_function(Name, Args, env(Scopes, Status, Funcs), ReturnValue,NewEnv)
         ;
             % Neither user-defined nor built-in
             throw(undeclare_function(Name))
         )
     ).
 
+% Helper to check argument types against parameter types
+check_argument_types([], [], [], _, _).
+check_argument_types([ArgValue|ArgValues], [par(_, Type)|Params], [_|OrigArgs], FuncName, AllArgs) :-
+    % Check if argument value matches parameter type
+    (check_type(ArgValue, Type) -> 
+        true
+    ;
+        throw(type_mismatch(call(FuncName, AllArgs)))
+    ),
+    check_argument_types(ArgValues, Params, OrigArgs, FuncName, AllArgs).
+
+
 % Handle user-defined function execution
-handle_user_function(Name, Args, Params, RetType, Body, Env, ReturnValue) :-
-    Env = env(Scopes, Status, Funcs),
+handle_user_function(Name, Args, Params, RetType, Body, Env, ReturnValue,ResultEnv) :-
     % Validate argument count
     length(Args, ArgCount),
     length(Params, ParamCount),
     (ArgCount =:= ParamCount -> true ; throw(wrong_number_of_argument(call(Name, Args)))),
-    
-    % Evaluate arguments in current environment
-    evaluate_args_with_originals(Args, Env, ArgValues, _),
-    
+
+    % In handle_user_function:
+    evaluate_args_with_originals(Args, Env, ArgValues, OrigArgs,NewEnv),
+
+    % Pass the original Args list to check_argument_types
+    check_argument_types(ArgValues, Params, OrigArgs, Name, Args),
     % Create new environment with parameters as innermost scope
-    create_function_env(ArgValues, Params, env(Scopes, Status, Funcs), env(NewScopes, NewStatus, NewFuncs)),
+    create_function_env(ArgValues, Params, NewEnv, env(NewScopes, NewStatus, NewFuncs)),
+    
     NewScopes = [L1|L2],
     FuncEnv = env([[id(Name, var, RetType, undefined)|L1]|L2], NewStatus, NewFuncs), 
 
     % Execute function body
-    reduce_stmt(config(Body, FuncEnv), config(_, ResultEnv)),
-    
+    reduce_stmt(config(Body, FuncEnv), config(_, TempEnv)),
+
     % Extract the return value - function name is used as the return variable
-    check_declared(Name, ResultEnv, id(Name, _, RetType, ReturnValue)),
-    
+    check_declared(Name, TempEnv, id(Name, _, RetType, ReturnValue)),
+
     % Verify return value matches declared return type
-    check_type(ReturnValue, RetType).
+    check_type(ReturnValue, RetType),
+    
+    TempEnv = env([_|T2], TemStatus, TemFuncs),
+
+    ResultEnv = env(T2, TemStatus, TemFuncs)
+    .
+
 
 % Handle built-in function execution
-handle_builtin_function(Name, Args, Env, ReturnValue) :-
+handle_builtin_function(Name, Args, Env, ReturnValue,NewEnv) :-
+    
     % Evaluate arguments while preserving originals for error messages
-    evaluate_args_with_originals(Args, Env, ArgValues, OrigArgs),
+    evaluate_args_with_originals(Args, Env, ArgValues, OrigArgs,NewEnv),
     % Call appropriate built-in function
     execute_builtin_func(Name, ArgValues, OrigArgs, ReturnValue).
 
@@ -495,9 +532,9 @@ reduce_all(config(V, Env), config(V, Env)) :-
     string(V), !.
 reduce_all(config(V, Env), config(V, Env)) :-
     V = undefined, !.
-reduce_all(config(E, Env), config(E2, Env)) :-
-    reduce(config(E, Env), config(E1, Env)), !,
-    reduce_all(config(E1, Env), config(E2, Env)).
+reduce_all(config(E, Env), config(E2, Env2)) :-
+    reduce(config(E, Env), config(E1, Env1)), !,
+    reduce_all(config(E1, Env1), config(E2, Env2)).
 reduce_all(config(V, Env), config(Value, Env)) :- 
     atom(V), 
     check_declared(V, Env, id(V, _, _, Value)), !. % Giá trị hằng
@@ -505,62 +542,67 @@ reduce_all(config(V, _), _) :-
 	atom(V),
 	throw(undeclare_identifier(V)).
 
-reduce_stmt(config([], Env), config(end,Env)) :- true.
+reduce_stmt(config([], Env), config(end, Env)) :- !.
 
+reduce_stmt(config([assign(I, E1)|Rest], Env), config(Status, Env2)) :- 
 
-% Assignment statement - check for constants and undefined values
-reduce_stmt(config([assign(I, E1)|Rest], Env), config(Status,Env2)) :-
-    % First check if trying to assign to a constant
     check_declared(I, Env, id(I, Kind, Type, _)),
     (Kind = const -> 
-        throw(cannot_assign(I))  % Cannot assign to constants
+        throw(cannot_assign(assign(I, E1)))
     ;
-        % Normal assignment for variables
-        reduce_all(config(E1, Env), config(Rhs, Env)),
-        
-        % Check if Rhs is undefined
+        reduce_all(config(E1, Env), config(Rhs, Env1)),
         (Rhs = undefined -> 
             throw(invalid_expression(E1))
         ;
-            % Check type compatibility
-            (   check_type(Rhs, Type) -> 
-            true  % Type matches
+            (check_type(Rhs, Type) -> 
+                true
             ;   
-            throw(type_mismatch(assign(I, E1)))  % Type mismatch
+                throw(type_mismatch(assign(I, E1)))
             ),
-            update_env(I, Rhs, Env, NewEnv),
-            reduce_stmt(config(Rest, NewEnv), config(NewStatus, Env2)),
-            determine_status(NewStatus, assign(I,E1), Status)
+            update_env(I, Rhs, Env1, NewEnv),
+
+            reduce_stmt(config(Rest, NewEnv), config(TempStatus, TempEnv)),
+
+            determine_status(TempStatus, assign(I, E1), Status),
+            Env2 = TempEnv
         )
     ).
 
-reduce_stmt(config([block(L1, L2)|Rest], Env), config(Status, Env2)) :-
+reduce_stmt(config([block(L1, L2)|Rest], Env), config(ReturnStatus, Env2)) :-
     (   L1 = [] ->
         % No new scope, just execute in current env and propagate all changes
         reduce_stmt(config(L2, Env), config(NewStatus, BlockEnv1)),
         determine_status(NewStatus, block(L1,L2), Status1),
-        handle_control(Status1, Rest, BlockEnv1, block(L1,L2), config(Status, Env2))
+        handle_control(Status1, Rest, BlockEnv1, block(L1,L2), config(ReturnStatus, Env2))
     ;   % New scope created
-        create_env(L1, Env, BlockEnv),
+        Env = env(Scopes, Status, Funcs),
+        create_env(L1, env([[]|Scopes], Status, Funcs), BlockEnv),
         reduce_stmt(config(L2, BlockEnv), config(NewStatus, BlockEnv1)),
-        merge_env_after_block(BlockEnv1, Env, MergedEnv),
+        merge_env_after_block(BlockEnv1, env([[]|Scopes], Status, Funcs), MergedEnv),
         determine_status(NewStatus, block(L1,L2), Status1),
-        handle_control(Status1, Rest, MergedEnv, block(L1,L2), config(Status, Env2))
+        handle_control(Status1, Rest, MergedEnv, block(L1,L2), config(ReturnStatus, Env2))
     ).
 
 reduce_stmt(config([if(E, S1, S2)|Rest], Env),config(Status,Env2)) :-
-    reduce_all(config(E, Env), config(V1, Env)),
-    (check_type(V1, boolean); throw(type_mismatch(if(E, S1, S2)))),!,
-    (V1 = true -> reduce_stmt(config([S1], Env), config(NewStatus,NewEnv)); reduce_stmt(config([S2], Env), config(NewStatus,NewEnv))),
+
+
+    reduce_all(config(E, Env), config(V1, Env1)),
+
+    (check_type(V1, boolean); throw(type_mismatch(if(E, S1, S2)))),
+
+    % Only put the cut after we've verified the conditional value
+    ((V1 = true -> reduce_stmt(config([S1], Env1), config(NewStatus,NewEnv))
+              ; V1 = false -> reduce_stmt(config([S2], Env1), config(NewStatus,NewEnv))
+              ; throw(type_mismatch(if(E, S1, S2))))),!,
     determine_status(NewStatus, if(E,S1,S2), Status1),
     handle_control(Status1, Rest, NewEnv, if(E,S1,S2), config(Status, Env2)).
 
 reduce_stmt(config([if(E, S1)|Rest], Env), config(Status, Env2)) :-
-    reduce_all(config(E, Env), config(V1, Env)),
+    reduce_all(config(E, Env), config(V1, Env1)),
     (check_type(V1, boolean); throw(type_mismatch(if(E, S1)))),!,
-    (V1 = true -> reduce_stmt(config([S1], Env), config(NewStatus, NewEnv)), 
+    (V1 = true -> reduce_stmt(config([S1], Env1), config(NewStatus, NewEnv)), 
                   determine_status(NewStatus, if(E,S1), Status1)
-                  ; Status1 = if(E,S1), NewEnv = Env),
+                  ; Status1 = if(E,S1), NewEnv = Env1),
     
     handle_control(Status1, Rest, NewEnv, if(E,S1), config(Status, Env2)).
 
@@ -568,10 +610,10 @@ reduce_stmt(config([if(E, S1)|Rest], Env), config(Status, Env2)) :-
 reduce_stmt(config([while(E, S)|Rest], Env), config(while(E,S),Env2)) :- 
     Env = env(Scopes, PrevStatus, Funcs),
     EnvInLoop = env(Scopes, true, Funcs),  % Đánh dấu đang trong vòng lặp
-    reduce_all(config(E, EnvInLoop), config(V, EnvInLoop)),
+    reduce_all(config(E, EnvInLoop), config(V, Env3)),
     (check_type(V, boolean); throw(type_mismatch(while(E, S)))),!,
     (   V = true
-    ->  reduce_stmt(config([S], EnvInLoop), Result),
+    ->  reduce_stmt(config([S], Env3), Result),
         (   Result = config(break(null), Env1)
         ->  NewEnv = Env1  % Thoát vòng lặp khi gặp break
         ;   Result = config(continue(null), Env1)
@@ -580,7 +622,7 @@ reduce_stmt(config([while(E, S)|Rest], Env), config(while(E,S),Env2)) :-
         ->  reduce_stmt(config([while(E, S)], Env1), config(while(E,S), NewEnv))
         )
     ;   V = false,
-        NewEnv = EnvInLoop
+        NewEnv = Env3
     ),
     NewEnv = env(Scopes2, _, Funcs2),
     EnvAfterLoop = env(Scopes2, PrevStatus, Funcs2),
@@ -595,20 +637,20 @@ reduce_stmt(config([do(L, E)|Rest], Env), config(do, Env2)) :-
     (   Result = config(break(null), Env1)
     ->  NewEnv = Env1  % Thoát vòng lặp khi gặp break
     ;   Result = config(continue(null), Env1)
-    ->  reduce_all(config(E, Env1), config(V, Env1)),
+    ->  reduce_all(config(E, Env1), config(V, Env3)),
         (check_type(V, boolean); throw(type_mismatch(do(L, E)))),!,
         (   V = true
-        ->  reduce_stmt(config([do(L, E)], Env1), config(_, NewEnv))
+        ->  reduce_stmt(config([do(L, E)], Env3), config(_, NewEnv))
         ;   V = false,
-            NewEnv = Env1
+            NewEnv = Env3
         )
-    ;   Result = config(_, Env1)
-    ->  reduce_all(config(E, Env1), config(V, Env1)),
+    ;   Result = config(_, Env3)
+    ->  reduce_all(config(E, Env1), config(V, Env3)),
         (check_type(V, boolean); throw(type_mismatch(do(L, E)))),!,
         (   V = true
         ->  reduce_stmt(config([do(L, E)], Env1), config(_, NewEnv))
         ;   V = false,
-            NewEnv = Env1
+            NewEnv = Env3
         )
     ),
     NewEnv = env(Scopes2, _, Funcs2),
@@ -620,10 +662,10 @@ reduce_stmt(config([do(L, E)|Rest], Env), config(do, Env2)) :-
 reduce_stmt(config([loop(E, S)|Rest], Env), config(loop(E,S),Env2)) :- 
     Env = env(Scopes, PrevStatus, Funcs),
     EnvInLoop = env(Scopes, true, Funcs),  % Đánh dấu đang trong vòng lặp
-    reduce_all(config(E, EnvInLoop), config(N, EnvInLoop)),
+    reduce_all(config(E, EnvInLoop), config(N, EnvInLoop2)),
     (check_type(N, integer); throw(type_mismatch(loop(E,S)))),!,
     N >= 0,  % Đảm bảo số lần lặp không âm
-    reduce_loop_with_ctrl(N, S, EnvInLoop, NewEnv),
+    reduce_loop_with_ctrl(N, S, EnvInLoop2, NewEnv),
     NewEnv = env(Scopes2, _, Funcs2),
     EnvAfterLoop = env(Scopes2, PrevStatus, Funcs2),
     reduce_stmt(config(Rest, EnvAfterLoop), config(_,Env2)).
@@ -642,9 +684,9 @@ reduce_stmt(config([call(Name, Args)|Rest], env(Scopes, Status, Funcs)), config(
     % Case 1: Built-in procedure
     (is_builtin(Name, proc) -> 
         % Evaluate arguments in current environment
-        evaluate_args_with_originals(Args, env(Scopes, Status, Funcs), ArgValues, OrigArgs),
+        evaluate_args_with_originals(Args, env(Scopes, Status, Funcs), ArgValues, OrigArgs,Env1),
         % Execute built-in procedure with both values and original expressions
-        execute_builtin_proc(Name, ArgValues, OrigArgs, env(Scopes, Status, Funcs), NewEnv),
+        execute_builtin_proc(Name, ArgValues, OrigArgs, Env1, NewEnv),
         % Continue with rest
         reduce_stmt(config(Rest, NewEnv), config(NewStatus, Env2)),
         determine_status(NewStatus, call(Name, Args), OutStatus)
@@ -657,17 +699,17 @@ reduce_stmt(config([call(Name, Args)|Rest], env(Scopes, Status, Funcs)), config(
         (ArgCount =:= ParamCount -> true ; throw(wrong_number_of_argument(call(Name, Args)))),
         
         % Evaluate arguments in current environment
-        evaluate_args_with_originals(Args, env(Scopes, Status, Funcs), ArgValues, _),
+        evaluate_args_with_originals(Args, env(Scopes, Status, Funcs), ArgValues, _,Env1),
         
         % Create new environment with parameters as innermost scope
         % Preserves function list but creates new parameter scope
-        create_function_env(ArgValues, Params, env(Scopes, Status, Funcs), ProcEnv),
+        create_function_env(ArgValues, Params, Env1, ProcEnv),
  
         % Execute procedure body
-        reduce_stmt(config(Body, ProcEnv), config(_, _)),
+        reduce_stmt(config(Body, ProcEnv), config(_, NewEnv)),
   
         % Continue with rest (procedures don't return values)
-        reduce_stmt(config(Rest, env(Scopes, Status, Funcs)), config(NewStatus, Env2)),
+        reduce_stmt(config(Rest, NewEnv), config(NewStatus, Env2)),
         determine_status(NewStatus, call(Name, Args), OutStatus)
     % Neither built-in nor user-defined
     ; throw(undeclare_procedure(Name))
@@ -685,10 +727,10 @@ create_param_bindings([Value|Values], [par(Name, Type)|Params], [id(Name, var, T
     create_param_bindings(Values, Params, Bindings).
 
 % Helper to evaluate args while keeping originals
-evaluate_args_with_originals([], _, [], []).
-evaluate_args_with_originals([Arg|Args], Env, [Value|Values], [Arg|Origs]) :-
-    reduce_all(config(Arg, Env), config(Value, _)),
-    evaluate_args_with_originals(Args, Env, Values, Origs).
+evaluate_args_with_originals([], Env, [], [],Env).
+evaluate_args_with_originals([Arg|Args], Env, [Value|Values], [Arg|Origs],NewEnv) :-
+    reduce_all(config(Arg, Env), config(Value, Env1)),
+    evaluate_args_with_originals(Args, Env1, Values, Origs,NewEnv).
 
 % Updated builtin execution
 execute_builtin_proc(Name, ArgValues, OrigArgs, Env, NewEnv) :-
@@ -735,6 +777,9 @@ execute_proc(writeStrLn, [Value], [OrigExpr], Env, Env) :-
     (check_type(Value, string); throw(type_mismatch(call(writeStrLn,[OrigExpr])))),!,
     (Value = undefined -> throw(invalid_expression(OrigExpr)); true),
     writeln(Value).
+% Individual procedure implementations with originals
+execute_proc(writeLn, _, _, Env, Env) :-
+    nl,!.
 
 % Helper predicate for loop with break/continue
 reduce_loop_with_ctrl(0, _, Env, Env) :- !.

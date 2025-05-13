@@ -1,0 +1,1 @@
+[[var(x,integer),const(y,2)],[func(double,[par(n,integer)],integer,[assign(double,times(n,2))])],[assign(x,4),if(eq(call(double,[x]),8),call(writeInt,[1]),call(writeInt,[0]))]].

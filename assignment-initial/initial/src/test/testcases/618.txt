@@ -1,0 +1,1 @@
+[[const(msg,"Hi"),var(count,integer)],[proc(show,[],[assign(count,add(count,1)),call(writeStr,[msg])])],[assign(count,0),call(show,[]),call(show,[]),call(writeInt,[count])]].

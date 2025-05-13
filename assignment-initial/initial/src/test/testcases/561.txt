@@ -1,0 +1,1 @@
+[[var(i,integer)],[],[assign(i,0),while(less(i,6),block([], [assign(i,add(i,1)),if(eq(imod(i,2),0),continue(null)),call(writeInt,[i])]))]].

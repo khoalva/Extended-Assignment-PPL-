@@ -1,0 +1,4 @@
+[
+            [const(s1,"foo"),const(s2,"foo")],
+            [],
+            [if(eq(s1,s2),call(writeStr,[s1]),call(writeStr,["bar"]))]].

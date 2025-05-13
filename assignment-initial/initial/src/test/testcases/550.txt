@@ -1,0 +1,1 @@
+[[var(x,integer),const(y,4)],[func(f,[par(z,integer)],integer,[assign(f,sub(z,y))])],[assign(x,10),call(writeInt,[call(f,[x])])]].

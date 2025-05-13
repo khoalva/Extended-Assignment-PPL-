@@ -1,0 +1,12 @@
+[[var(x, integer), var(y, integer)],
+                    [func(gcd, [par(a, integer), par(b, integer)], integer, [
+                            if(eql(b, 0), assign(gcd, a), assign(gcd, call(gcd, [b, imod(a, b)])))
+                        ])
+                    ],
+                    [
+                        call(writeIntLn, [call(gcd, [7,4])]),
+                        call(writeIntLn, [call(gcd, [7,7])]),
+                        call(writeIntLn, [call(gcd, [60,45])]),
+                        call(writeIntLn, [call(gcd, [120,24])])
+                    ]].
+                

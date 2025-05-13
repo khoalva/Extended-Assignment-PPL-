@@ -1,0 +1,1 @@
+[[const(p,4),const(q,6)],[],[call(writeBool,[less(times(p,3),add(q,10))])]].

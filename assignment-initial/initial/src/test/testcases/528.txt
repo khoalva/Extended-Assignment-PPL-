@@ -1,0 +1,1 @@
+[[const(m,17),const(n,5)],[],[call(writeInt,[imod(m,n)])]].

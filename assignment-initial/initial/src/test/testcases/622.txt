@@ -1,0 +1,13 @@
+[
+            [var(flag,boolean)],
+            [proc(enable,[],[assign(flag,false)])],
+            [
+                assign(flag,true),
+                if(flag,
+                    block(
+                        [],
+                        [call(enable,[]),call(writeBool,[flag])]
+                    ),
+                    call(writeBool,[flag])
+                )
+            ]].

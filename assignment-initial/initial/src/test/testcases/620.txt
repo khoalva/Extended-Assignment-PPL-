@@ -1,0 +1,14 @@
+[
+            [var(x,integer),const(y,3)],
+            [proc(foo,[par(z,integer)],[
+                assign(x,times(z,y))
+                ])
+            ],
+            [
+                call(foo,[4]),
+                block(
+                    [var(x,integer)],
+                    [call(foo,[5]),call(writeInt,[x])]
+                ),
+                call(writeInt,[x])
+            ]].

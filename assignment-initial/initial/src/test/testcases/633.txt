@@ -1,0 +1,1 @@
+[[var(i,integer),var(cnt,integer)],[proc(inc,[],[assign(cnt,add(cnt,1))])],[assign(i,0),assign(cnt,0),while(less(i,5),block([], [if(eq(imod(i,2),0),call(inc,[])),assign(i,add(i,1))])),call(writeInt,[cnt])]].

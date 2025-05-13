@@ -1,0 +1,1 @@
+[[var(i,integer),var(sum,integer)],[proc(addup,[],[assign(sum,add(sum,i)),assign(i,add(i,1))])],[assign(i,1),assign(sum,0),while(less(i,5),call(addup,[])),call(writeInt,[sum])]].

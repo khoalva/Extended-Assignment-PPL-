@@ -1,0 +1,13 @@
+[
+            [var(a,integer),var(b,integer),var(c,integer)],
+            [proc(updateABC,[],[
+                assign(a,add(a,1)),
+                if(bnot(eq(a,2)),assign(b,add(b,2))),
+                assign(c,add(c,3))
+            ])],
+            [
+                assign(a,1),assign(b,0),assign(c,0),
+                call(updateABC,[]),
+                call(writeInt,[a]),call(writeInt,[b]),call(writeInt,[c])
+            ]
+        ].

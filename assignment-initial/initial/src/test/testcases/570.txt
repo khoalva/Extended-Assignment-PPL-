@@ -1,0 +1,1 @@
+[[],[func(g,[par(a,integer),par(b,integer)],integer,[assign(g,add(a,b))])],[call(writeInt,[call(g,[7])])]].

@@ -1,0 +1,16 @@
+[
+            [var(i,integer),var(prod,integer)],
+            [],
+            [
+            assign(i,1),
+            assign(prod,1),
+            do(
+                [
+                    if( eq(i,4),
+                        block([],[assign(i,add(i,1)), continue(null)]),
+                        assign(prod,times(prod,i))),
+                    assign(i,add(i,1))
+                ],
+                less(i,6)
+            ),
+            call(writeInt,[prod])]].

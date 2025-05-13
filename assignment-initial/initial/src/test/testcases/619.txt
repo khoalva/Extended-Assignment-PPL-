@@ -1,0 +1,18 @@
+[
+            [var(a,integer),var(b,integer),var(c,integer)],
+            [proc(calc,[],[
+                assign(a,add(a,1)),
+                assign(b,add(b,2)),
+                assign(c,add(c,3))
+                ])
+            ],
+            [
+                assign(a,1),
+                assign(b,2),
+                assign(c,3),
+                call(calc,[]),
+                call(writeInt,[a]),
+                call(writeInt,[b]),
+                call(writeInt,[c])
+            ]
+        ].
